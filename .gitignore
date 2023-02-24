@@ -4,3 +4,4 @@ R/EML_editor.R
 inst/doc
 datastore_interactions.R
 sandbox/data.xml
+.Rprofile

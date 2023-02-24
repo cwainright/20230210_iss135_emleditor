@@ -1,0 +1,111 @@
+---
+title: "EMLeditor research"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+# Purpose  
+
+This document captures research and processes for building a `python` port of the `R` package [EMLeditor](https://github.com/nationalparkservice/EMLeditor).  
+
+# What is EMLeditor?
+
+Per Github, [EMLeditor](https://github.com/nationalparkservice/EMLeditor) is used to edit EML-formatted xml files. EMLeditor provides functions that will be useful to the U.S. National Park Service when generating metadata for statistical data packages uploaded to DataStore. NPS affiliation is assumed as default, but other options are possible. Additional information available [here](nationalparkservice.github.io/EMLeditor/).
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+reticulate::use_condaenv("iss135_emleditor") # specify the conda environment for this project (equivalent to using renv in R)
+```
+
+# Goal
+
+Create a function-for-function `python` version of the `R` package `EMLeditor`.
+
+# Process
+
+I'm re-creating the [workflow outlined here.](https://nationalparkservice.github.io/EMLeditor/)
+
+
+First, install `R` packages:
+
+```{r}
+#------ load external libraries
+# followed `#individual install:` in '20230210_iss135_emleditor/vignettes/EMLeditor.Rmd'
+renv::install("devtools")
+devtools::install_github("nationalparkservice/EMLeditor")
+renv::install("EML")
+library(EML)
+library(EMLeditor)
+```
+
+# Objective 1: re-create `EML::read_eml()`
+
+The [workflow](https://nationalparkservice.github.io/EMLeditor/) first calls `EML::read_eml()`.
+```{r, warning = FALSE}
+if(getwd() != "C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor")  {
+    setwd("C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor")
+}
+r_metadata <- EML::read_eml("sandbox/2022_NCRN_forest_vegetation_metadata.xml", from = "xml")
+```
+`EML::read_eml()` accepts two params:
+1. `x`: str, path to an EML file. This is often [EML-formatted](https://github.com/ropensci/EML) xml, but it could be other filetypes (see `from` below).
+2. `from`: str, explicit type for the input format. Possible values: "xml", "json", "list", or "guess" with "xml" as the default.
+`EML::read_eml()` returns an instance of Class 'emld', which is an `R` list().
+
+### Objective 1, task 1: match the data structure retured by `EML::read_eml()`
+* `R` lists
+  * Can contain elements of any data type
+  * Accessible by index (e.g., `mylist[1][1]`) or by name (e.g., `mylist["firstelement"]["firstsub_element"]`)
+
+* [Stackoverflow suggests](https://stackoverflow.com/questions/50731319/python-equivalent-of-r-list) that a python `dictionary{}` can be roughly equivalent to an R `list()`
+  * Can contain elements of any data type
+  * Accessible by index (e.g., `list(mydict[0][0])`) or by name (e.g., `mydict['firstelement']['firstsub_element']`)
+
+Given this logic, I selected a python `dict{}` as the base data structure for this project.
+
+'emld' objects always have length `r length(r_metadata)` and contain information parsed from the `.xml` file passed as parameter `x` in the `EML::read_eml()` function call.
+
+### Objective 1, task 1: re-create an `emld`
+
+What are the specs of an `emld` in `R`?  
+
+```{r}
+paste0("length of `r_metadata` = ", length(r_metadata))
+for (i in 1:length(r_metadata)) {
+    print(names(r_my_metadata)[i])
+    }
+```
+
+Now we create an empty `dict{}` that matches the `R emld` spec:
+
+```{python}
+py_metadata = {
+    "@context": None,
+    "@type": None,
+    "additionalMetadata": None,
+    "dataset": None,
+    "packageId": None,
+    "schemaLocation": None,
+    "system": None
+    } 
+```
+
+Check the spec of our `python emld` equivalent.
+
+```{python}
+print(f"length of `py_metadata` = {len(py_metadata)}")
+for i in range(0, len(py_metadata)):
+    print(list(py_my_metadata)[i])
+```
+
+
+
+
+
+
+
+```{r}
+# load additional libraries for parsing xml
+library(stringr)
+library(xml2)
+```

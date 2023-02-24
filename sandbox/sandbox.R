@@ -29,7 +29,6 @@ names(my_testlist) <- names(my_metadata)
 my_testlist$`@context` <- vector(mode = 'list', length = length(my_metadata$`@context`))
 my_
 
-
 my_meta2 <- set_cui(my_metadata, "PUBLIC")
 
 
