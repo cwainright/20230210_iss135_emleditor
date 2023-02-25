@@ -28,7 +28,7 @@ I'm re-creating the [workflow outlined here.](https://nationalparkservice.github
 
 First, install `R` packages:
 
-```{r}
+```{r, warning=FALSE}
 #------ load external libraries
 # followed `#individual install:` in '20230210_iss135_emleditor/vignettes/EMLeditor.Rmd'
 renv::install("devtools")
@@ -98,7 +98,24 @@ for i in range(0, len(py_metadata)):
     print(f"Is '{list(py_metadata)[i]}' identical in `R emld`? {list(py_metadata)[i] == r.names_r_metadata[i]}")
 ```
 
-# Objective 1, task 3: parse input xml to `@context`
+### Objective 1, task 3: remove comment nodes
+This is line 107 of [EML::as_emld()](https://github.com/ropensci/emld/blob/master/R/as_emld.R)
+
+```{python}
+import xml.etree.ElementTree as ET
+tree = ET.parse('C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor/sandbox/2022_NCRN_forest_vegetation_metadata.xml')
+root = tree.getroot()
+# root
+# root.tag
+# root.attrib
+# root[0][0].text
+for comment in root.findall('.//comment'):
+    # using root.findall() to avoid removal during traversal
+    # https://docs.python.org/3/library/xml.etree.elementtree.html
+    root.remove(comment)
+```
+
+### Objective 1, task 4: parse input xml to `@context`
 
 Examine the contents of `r_metadata$`@context``
 
@@ -107,33 +124,26 @@ paste0("length of `r_metadata$`@context`` = ", length(r_metadata$`@context`))
 for (i in 1:length(r_metadata)) {
     print(names(r_metadata$`@context`)[i])
 }
+names_r_metadata_context <- names(r_metadata$`@context`)
 ```
 Re-create `r_metadata$`@context`` `py_metadata.`@context``
 
 ```{python}
-py_metadata = {
-    "@context": {
-      "@vocab": None,
-      "eml": None,
-      "xsi": None,
-      "xml": None,
-      "stmml": None,
-      "id": None,
-      "@base": None
-      },
-    "@type": None,
-    "additionalMetadata": None,
-    "dataset": None,
-    "packageId": None,
-    "schemaLocation": None,
-    "system": None
-    } 
-```
+py_metadata["@context"] = dict(zip(r.names_r_metadata_context, [None]*len(r.names_r_metadata_context)))
 
-```{python}
+# print spec to console
 print(f'length of `py_metadata["@context"]` = {len(py_metadata["@context"])}')
 for i in range(0, len(py_metadata["@context"])):
     print(list(py_metadata["@context"])[i])
+```
+
+Confirm that `R emld` and `python emld` match exactly so far:
+
+```{python}
+print(f"Are the lengths of the emlds equal? {len(r.r_metadata['@context']) == len(py_metadata['@context'])}")
+
+for i in range(0, len(py_metadata)):
+    print(f"Is '{list(py_metadata['@context'])[i]}' identical in `R emld`? {list(py_metadata['@context'])[i] == r.names_r_metadata_context[i]}")
 ```
 
 
