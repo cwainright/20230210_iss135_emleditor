@@ -92,7 +92,7 @@ for i in range(0, len(py_metadata)):
 Confirm that `R emld` and `python emld` match exactly so far:
 
 ```{python}
-print(f"Are the lengths of the emlds equal? {len(r.r_metadata) == len(py_metadata)}")
+print(f"Is the length of `python emld` equal to that of `R emld`? {len(r.r_metadata) == len(py_metadata)}\n")
 
 for i in range(0, len(py_metadata)):
     print(f"Is '{list(py_metadata)[i]}' identical in `R emld`? {list(py_metadata)[i] == r.names_r_metadata[i]}")
@@ -140,17 +140,39 @@ for i in range(0, len(py_metadata["@context"])):
 Confirm that `R emld` and `python emld` match exactly so far:
 
 ```{python}
-print(f"Are the lengths of the emlds equal? {len(r.r_metadata['@context']) == len(py_metadata['@context'])}")
+print(f"Is the length of `['@context']` equal in both emlds? {len(r.r_metadata['@context']) == len(py_metadata['@context'])}\n")
 
 for i in range(0, len(py_metadata)):
     print(f"Is '{list(py_metadata['@context'])[i]}' identical in `R emld`? {list(py_metadata['@context'])[i] == r.names_r_metadata_context[i]}")
 ```
+What is the value stored in r_metadata$`@context`$`@vocab`?
 
-
-
+```{r}
+r_metadata$`@context`$`@vocab`
+```
+Where in our xml document is `EML::read_eml()` pulling that value? is the value of r_metadata$`@context`$`@vocab`
 
 ```{r}
 # load additional libraries for parsing xml
-library(stringr)
 library(xml2)
+r_original_xml <- xml2::read_xml('C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor/sandbox/2022_NCRN_forest_vegetation_metadata.xml')
+xml_attrs(r_original_xml)[["xmlns:eml"]] # this is the value EML::read_eml() routes to r_metadata$`@context`$`@vocab`
 ```
+
+```{python}
+import xmltodict # https://www.geeksforgeeks.org/python-program-to-convert-xml-to-dictionary/
+with open('C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor/sandbox/2022_NCRN_forest_vegetation_metadata.xml', 'r') as file:
+    my_xml = file.read()
+my_dict = xmltodict.parse(my_xml)
+my_dict["eml:eml"]["@xmlns:eml"]
+```
+```{python}
+py_metadata["@context"]["@vocab"] = my_dict["eml:eml"]["@xmlns:eml"]
+```
+
+
+
+
+
+
+

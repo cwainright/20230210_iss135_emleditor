@@ -35,3 +35,44 @@ py_my_metadata = {
     "schemaLocation": None,
     "system": None
     } 
+
+
+
+
+myxml = "<?xml version="1.0"?>
+<actors xmlns:fictional="http://characters.example.com"
+        xmlns="http://people.example.com">
+    <actor type='T1'>
+        <name>John Cleese</name>
+        <fictional:character>Lancelot</fictional:character>
+        <fictional:character>Archie Leach</fictional:character>
+    </actor>
+    <actor type='T2'>
+        <name>Eric Idle</name>
+        <fictional:character>Sir Robin</fictional:character>
+        <fictional:character>Gunther</fictional:character>
+        <fictional:character>Commander Clement</fictional:character>
+    </actor>
+</actors>"
+
+myparsed = ET.fromstring(myxml)
+ns = {
+    'ns'         : 'http://people.example.com',
+    'fictional': 'http://characters.example.com'
+}
+
+
+for prefix, uri in ns.items():
+    ET.register_namespace(prefix, uri)
+    
+    
+mynamespaces = root.findall('xmlns:eml', root)
+for n in mynamespaces: 
+    print(n)
+
+import xmltodict
+import pprint
+with open('C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor/sandbox/2022_NCRN_forest_vegetation_metadata.xml', 'r', encoding='utf-8') as file:
+    my_xml = file.read()
+    
+my_dict = xmltodict.parse(my_xml)
