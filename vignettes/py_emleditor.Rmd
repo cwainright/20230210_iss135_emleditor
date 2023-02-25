@@ -42,45 +42,85 @@ library(EMLeditor)
 
 The [workflow](https://nationalparkservice.github.io/EMLeditor/) first calls `EML::read_eml()`.
 ```{r, warning = FALSE}
-if(getwd() != "C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor")  {
-    setwd("C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor")
-}
-r_metadata <- EML::read_eml("sandbox/2022_NCRN_forest_vegetation_metadata.xml", from = "xml")
+r_metadata <- EML::read_eml("C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor/sandbox/2022_NCRN_forest_vegetation_metadata.xml", from = "xml")
 ```
 `EML::read_eml()` accepts two params:
 1. `x`: str, path to an EML file. This is often [EML-formatted](https://github.com/ropensci/EML) xml, but it could be other filetypes (see `from` below).
 2. `from`: str, explicit type for the input format. Possible values: "xml", "json", "list", or "guess" with "xml" as the default.
-`EML::read_eml()` returns an instance of Class 'emld', which is an `R` list().
+`EML::read_eml()` returns an instance of Class 'emld', which is an `R` list() ([see line 121](https://github.com/ropensci/emld/blob/master/R/as_emld.R)).
 
 ### Objective 1, task 1: match the data structure retured by `EML::read_eml()`
 * `R` lists
   * Can contain elements of any data type
   * Accessible by index (e.g., `mylist[1][1]`) or by name (e.g., `mylist["firstelement"]["firstsub_element"]`)
 
-* [Stackoverflow suggests](https://stackoverflow.com/questions/50731319/python-equivalent-of-r-list) that a python `dictionary{}` can be roughly equivalent to an R `list()`
+* [Stackoverflow suggests](https://stackoverflow.com/questions/50731319/python-equivalent-of-r-list) that a python `dictionary{}` can be equivalent to an R `list()`
   * Can contain elements of any data type
   * Accessible by index (e.g., `list(mydict[0][0])`) or by name (e.g., `mydict['firstelement']['firstsub_element']`)
 
-Given this logic, I selected a python `dict{}` as the base data structure for this project.
+Since `library(reticulate)` lets us access R objects from our python session, we can test Stackoverflow's suggestion:
 
-'emld' objects always have length `r length(r_metadata)` and contain information parsed from the `.xml` file passed as parameter `x` in the `EML::read_eml()` function call.
+```{python}
+r.r_metadata.__class__
+```
+Confirmed, RStudio interprets an `R list` as a `python dict`.
 
-### Objective 1, task 1: re-create an `emld`
+### Objective 1, task 2: re-create an `emld`
 
 What are the specs of an `emld` in `R`?  
+
+'emld' objects always have length `r length(r_metadata)` and contain information parsed from the `.xml` file passed as parameter `x` in the `EML::read_eml()` function call.
 
 ```{r}
 paste0("length of `r_metadata` = ", length(r_metadata))
 for (i in 1:length(r_metadata)) {
-    print(names(r_my_metadata)[i])
-    }
+    print(names(r_metadata)[i])
+}
+
+names_r_metadata <- names(r_metadata) # save names to build python emld
 ```
 
 Now we create an empty `dict{}` that matches the `R emld` spec:
+```{python}
+py_metadata = dict(zip(r.names_r_metadata, [None]*len(r.r_metadata)))
+
+# print spec to console
+print(f"length of `py_metadata` = {len(py_metadata)}")
+for i in range(0, len(py_metadata)):
+    print(list(py_metadata)[i])
+```
+Confirm that `R emld` and `python emld` match exactly so far:
+
+```{python}
+print(f"Are the lengths of the emlds equal? {len(r.r_metadata) == len(py_metadata)}")
+
+for i in range(0, len(py_metadata)):
+    print(f"Is '{list(py_metadata)[i]}' identical in `R emld`? {list(py_metadata)[i] == r.names_r_metadata[i]}")
+```
+
+# Objective 1, task 3: parse input xml to `@context`
+
+Examine the contents of `r_metadata$`@context``
+
+```{r}
+paste0("length of `r_metadata$`@context`` = ", length(r_metadata$`@context`))
+for (i in 1:length(r_metadata)) {
+    print(names(r_metadata$`@context`)[i])
+}
+```
+Re-create `r_metadata$`@context`` `py_metadata.`@context``
 
 ```{python}
 py_metadata = {
-    "@context": None,
+    "@context": {
+      "@vocab": None,
+      "eml": None,
+      "xsi": None,
+      "xml": None,
+      "stmml": None,
+      "id": None,
+      "@base": None
+      },
     "@type": None,
     "additionalMetadata": None,
     "dataset": None,
@@ -90,16 +130,11 @@ py_metadata = {
     } 
 ```
 
-Check the spec of our `python emld` equivalent.
-
 ```{python}
-print(f"length of `py_metadata` = {len(py_metadata)}")
-for i in range(0, len(py_metadata)):
-    print(list(py_my_metadata)[i])
+print(f'length of `py_metadata["@context"]` = {len(py_metadata["@context"])}')
+for i in range(0, len(py_metadata["@context"])):
+    print(list(py_metadata["@context"])[i])
 ```
-
-
-
 
 
 
