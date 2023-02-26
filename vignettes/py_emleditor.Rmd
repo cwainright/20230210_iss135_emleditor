@@ -56,14 +56,18 @@ r_metadata <- EML::read_eml("C:/Users/cwainright/OneDrive - DOI/Documents/data_p
 
 * [Stackoverflow suggests](https://stackoverflow.com/questions/50731319/python-equivalent-of-r-list) that a python `dictionary{}` can be equivalent to an R `list()`
   * Can contain elements of any data type
-  * Accessible by index (e.g., `list(mydict[0][0])`) or by name (e.g., `mydict['firstelement']['firstsub_element']`)
+  * Accessible by index when cast to list (e.g., `list(mydict[0][0])`) or natively by name (e.g., `mydict['firstelement']['firstsub_element']`)
+  
+* Python also has a dictionary subclass called an [Ordered Dictionary](https://realpython.com/python-ordereddict/#:~:text=Python's%20OrderedDict%20is%20a%20dict,then%20the%20order%20remains%20unchanged.).
+  * An 'ordered dictionary' is subclass of dictionary that preserves the order of key-value pairs.
+  * Since ordered dictionaries are natively accessible by index and by name, they are practically identical to an R list and will be ideal for this project.
 
-Since `library(reticulate)` lets us access R objects from our python session, we can test Stackoverflow's suggestion:
+Since `library(reticulate)` lets us access R objects from our python session, we can also ask `reticulate` what class it interprets an `R emld` to be in `python`:
 
 ```{python}
 r.r_metadata.__class__
 ```
-Confirmed, RStudio interprets an `R list` as a `python dict`.
+`reticulate` interprets an `R list` as a `python dict`.
 
 ### Objective 1, task 2: re-create an `emld`
 
@@ -74,20 +78,21 @@ What are the specs of an `emld` in `R`?
 ```{r}
 paste0("length of `r_metadata` = ", length(r_metadata))
 for (i in 1:length(r_metadata)) {
-    print(names(r_metadata)[i])
+  print(names(r_metadata)[i])
 }
 
 names_r_metadata <- names(r_metadata) # save names to build python emld
 ```
 
-Now we create an empty `dict{}` that matches the `R emld` spec:
+Now we create an empty `OrderedDict{}` that matches the `R emld` spec:
 ```{python}
-py_metadata = dict(zip(r.names_r_metadata, [None]*len(r.r_metadata)))
+from collections import OrderedDict # https://realpython.com/python-ordereddict/#:~:text=Python's%20OrderedDict%20is%20a%20dict,then%20the%20order%20remains%20unchanged.
+py_metadata = OrderedDict(zip(r.names_r_metadata, [None]*len(r.r_metadata)))
 
 # print spec to console
 print(f"length of `py_metadata` = {len(py_metadata)}")
 for i in range(0, len(py_metadata)):
-    print(list(py_metadata)[i])
+  print(list(py_metadata)[i])
 ```
 Confirm that `R emld` and `python emld` match exactly so far:
 
@@ -102,22 +107,22 @@ for i in range(0, len(py_metadata)):
 This is line 107 of [EML::as_emld()](https://github.com/ropensci/emld/blob/master/R/as_emld.R)
 
 ```{python}
-import xml.etree.ElementTree as ET
-tree = ET.parse('C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor/sandbox/2022_NCRN_forest_vegetation_metadata.xml')
-root = tree.getroot()
-# root
-# root.tag
-# root.attrib
-# root[0][0].text
-for comment in root.findall('.//comment'):
-    # using root.findall() to avoid removal during traversal
-    # https://docs.python.org/3/library/xml.etree.elementtree.html
-    root.remove(comment)
+# import xml.etree.ElementTree as ET
+# tree = ET.parse('C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor/sandbox/2022_NCRN_forest_vegetation_metadata.xml')
+# root = tree.getroot()
+# # root
+# # root.tag
+# # root.attrib
+# # root[0][0].text
+# for comment in root.findall('.//comment'):
+#     # using root.findall() to avoid removal during traversal
+#     # https://docs.python.org/3/library/xml.etree.elementtree.html
+#     root.remove(comment)
 ```
 
-### Objective 1, task 4: parse input xml to `@context`
+### Objective 1, task 4: parse input xml to `py_metadata["@context"]["@vocab"]`
 
-Examine the contents of `r_metadata$`@context``
+Examine the contents of ```r_metadata$`@context````
 
 ```{r}
 paste0("length of `r_metadata$`@context`` = ", length(r_metadata$`@context`))
@@ -126,7 +131,7 @@ for (i in 1:length(r_metadata)) {
 }
 names_r_metadata_context <- names(r_metadata$`@context`)
 ```
-Re-create `r_metadata$`@context`` `py_metadata.`@context``
+Re-create ```r_metadata$`@context```` ```py_metadata.`@context````
 
 ```{python}
 py_metadata["@context"] = dict(zip(r.names_r_metadata_context, [None]*len(r.names_r_metadata_context)))
@@ -145,34 +150,88 @@ print(f"Is the length of `['@context']` equal in both emlds? {len(r.r_metadata['
 for i in range(0, len(py_metadata)):
     print(f"Is '{list(py_metadata['@context'])[i]}' identical in `R emld`? {list(py_metadata['@context'])[i] == r.names_r_metadata_context[i]}")
 ```
-What is the value stored in r_metadata$`@context`$`@vocab`?
+What is the value stored in ```r_metadata$`@context`$`@vocab````?
 
 ```{r}
 r_metadata$`@context`$`@vocab`
 ```
-Where in our xml document is `EML::read_eml()` pulling that value? is the value of r_metadata$`@context`$`@vocab`
+Where in our xml document is `EML::read_eml()` pulling that value from?
 
 ```{r}
 # load additional libraries for parsing xml
 library(xml2)
 r_original_xml <- xml2::read_xml('C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor/sandbox/2022_NCRN_forest_vegetation_metadata.xml')
 xml_attrs(r_original_xml)[["xmlns:eml"]] # this is the value EML::read_eml() routes to r_metadata$`@context`$`@vocab`
+xml_attrs(r_original_xml)[["xmlns:eml"]] == r_metadata$`@context`$`@vocab`
 ```
-
+Find that same value in our python dictionary and assign it to the correct metadata element:
 ```{python}
-import xmltodict # https://www.geeksforgeeks.org/python-program-to-convert-xml-to-dictionary/
-with open('C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor/sandbox/2022_NCRN_forest_vegetation_metadata.xml', 'r') as file:
-    my_xml = file.read()
-my_dict = xmltodict.parse(my_xml)
-my_dict["eml:eml"]["@xmlns:eml"]
+print(f'this value is avaliable in the xml doc `my_dict["eml:eml"]["@xmlns:eml"]`: {my_dict["eml:eml"]["@xmlns:eml"]}') # find the correct value to assign
+
+# assign value to metadata element
+# in our example, the correct value ends in a backslash
+# however, in our metadata, the value of my_dict["eml:eml"]["@xmlns:eml"] does not end in a backslash
+# I haven't figured out where the backslash comes from but the two options seem to be:
+  # 1) string split the url associated with the EML schemaLocation `xml_attrs(r_original_xml)[["schemaLocation"]]` (it appears this is NOT what library(EML) does...) https://github.com/ropensci/emld/blob/master/R/eml_version.R
+  # 2) concatenate a backslash to the EML version namespace (I also haven't found any code indicating that library(EML) does this...)
+  
+# despite not knowing HOW library(EML) arrives at the correct answer, I can make our program arrive at the correct answer:
+if my_dict["eml:eml"]["@xmlns:eml"][-1:] != '/':
+  py_metadata["@context"]["@vocab"] = my_dict["eml:eml"]["@xmlns:eml"] + '/' 
+if my_dict["eml:eml"]["@xmlns:eml"][-1:] == '/':
+  py_metadata["@context"]["@vocab"] = my_dict["eml:eml"]["@xmlns:eml"]
+
+print(f'we assigned {py_metadata["@context"]["@vocab"]} to `py_metadata["@context"]["@vocab"]`')  # check our work
 ```
+We have now parsed the correct value to `py_metadata["@context"]["@vocab"]`
+
+### Objective 1, task 5: parse input xml to `py_metadata["@context"]["eml"]`
+
+What is the value stored in ```r_metadata$`@context`$`eml```?
+
+```{r}
+r_metadata$`@context`$eml
+```
+Where in our xml document is `EML::read_eml()` pulling that value for ```r_metadata$`@context`$eml``` from?
+```{r}
+xml_attrs(r_original_xml)[["xmlns:eml"]] # this is the value EML::read_eml() routes to r_metadata$`@context`$`@vocab`
+xml_attrs(r_original_xml)[["xmlns:eml"]] == r_metadata$`@context`$eml
+```
+
+Find that same value in our python dictionary and assign it to the correct metadata element:
 ```{python}
-py_metadata["@context"]["@vocab"] = my_dict["eml:eml"]["@xmlns:eml"]
+print(f'this value is avaliable in the xml doc `my_dict["eml:eml"]["@xmlns:eml"]`: {my_dict["eml:eml"]["@xmlns:eml"]}') # find the correct value to assign
+
+if my_dict["eml:eml"]["@xmlns:eml"][-1:] != '/':
+  py_metadata["@context"]["eml"] = my_dict["eml:eml"]["@xmlns:eml"] + '/' 
+if my_dict["eml:eml"]["@xmlns:eml"][-1:] == '/':
+  py_metadata["@context"]["eml"] = my_dict["eml:eml"]["@xmlns:eml"]
+
+print(f'we assigned {py_metadata["@context"]["eml"]} to `py_metadata["@context"]["@vocab"]`')  # check our work
 ```
 
+### Objective 1, task 6: parse input xml to `py_metadata["@context"]["xsi"]`
 
+```{r}
+r_metadata$`@context`$xsi
+```
+Where in our xml document is `EML::read_eml()` pulling that value for ```r_metadata$`@context`$eml``` from?
+```{r}
+xml_attrs(r_original_xml)[["xmlns:xsi"]] # this is the value EML::read_eml() routes to r_metadata$`@context`$`@vocab`
+xml_attrs(r_original_xml)[["xmlns:xsi"]] == r_metadata$`@context`$xsi
+```
 
+Find that same value in our python dictionary and assign it to the correct metadata element:
+```{python}
+print(f'this value is avaliable in the xml doc `my_dict["eml:eml"]["@xmlns:xsi"]`: {my_dict["eml:eml"]["@xmlns:xsi"]}') # find the correct value to assign
 
+if my_dict["eml:eml"]["@xmlns:xsi"][-1:] != '/':
+  py_metadata["@context"]["xsi"] = my_dict["eml:eml"]["@xmlns:xsi"] + '/' 
+if my_dict["eml:eml"]["@xmlns:xsi"][-1:] == '/':
+  py_metadata["@context"]["xsi"] = my_dict["eml:eml"]["@xmlns:xsi"]
+
+print(f'we assigned {py_metadata["@context"]["xsi"]} to `py_metadata["@context"]["xsi"]`')  # check our work
+```
 
 
 

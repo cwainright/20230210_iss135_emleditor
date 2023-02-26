@@ -76,3 +76,18 @@ with open('C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230
     my_xml = file.read()
     
 my_dict = xmltodict.parse(my_xml)
+
+from lxml import etree
+root = etree.Element("root")
+print(root.tag)
+
+mywtf = etree.parse('C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor/sandbox/2022_NCRN_forest_vegetation_metadata.xml')
+myroot = mywtf.getroot()
+
+xmlFile = 'C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor/sandbox/2022_NCRN_forest_vegetation_metadata.xml'
+with open(xmlFile) as fobj:
+    xml = fobj.read()
+
+root = etree.fromstring(xml)
+root.getchildren()
+
