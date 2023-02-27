@@ -8,7 +8,7 @@ date: "`r Sys.Date()`"
 
 This document captures research and processes for building a `python` port of the `R` package [EMLeditor](https://github.com/nationalparkservice/EMLeditor).  
 
-# What is EMLeditor?
+### What is EMLeditor?
 
 Per Github, [EMLeditor](https://github.com/nationalparkservice/EMLeditor) is used to edit EML-formatted xml files. EMLeditor provides functions that will be useful to the U.S. National Park Service when generating metadata for statistical data packages uploaded to DataStore. NPS affiliation is assumed as default, but other options are possible. Additional information available [here](nationalparkservice.github.io/EMLeditor/).
 
@@ -17,14 +17,13 @@ knitr::opts_chunk$set(echo = TRUE)
 reticulate::use_condaenv("iss135_emleditor") # specify the conda environment for this project (equivalent to using renv in R)
 ```
 
-# Goal
+### Goal
 
 Create a function-for-function `python` version of the `R` package `EMLeditor`.
 
-# Process
+### Process
 
 I'm re-creating the [workflow outlined here.](https://nationalparkservice.github.io/EMLeditor/)
-
 
 First, install `R` packages:
 
@@ -47,18 +46,14 @@ r_metadata <- EML::read_eml("C:/Users/cwainright/OneDrive - DOI/Documents/data_p
 `EML::read_eml()` accepts two params:
 1. `x`: str, path to an EML file. This is often [EML-formatted](https://github.com/ropensci/EML) xml, but it could be other filetypes (see `from` below).
 2. `from`: str, explicit type for the input format. Possible values: "xml", "json", "list", or "guess" with "xml" as the default.
-`EML::read_eml()` returns an instance of Class 'emld', which is an `R` list() ([see line 121](https://github.com/ropensci/emld/blob/master/R/as_emld.R)).
+`EML::read_eml()` returns an instance of Class 'emld', which is an `R list()` ([see line 121](https://github.com/ropensci/emld/blob/master/R/as_emld.R)).
 
 ### Objective 1, task 1: match the data structure retured by `EML::read_eml()`
 * `R` lists
   * Can contain elements of any data type
   * Accessible by index (e.g., `mylist[1][1]`) or by name (e.g., `mylist["firstelement"]["firstsub_element"]`)
 
-* [Stackoverflow suggests](https://stackoverflow.com/questions/50731319/python-equivalent-of-r-list) that a python `dictionary{}` can be equivalent to an R `list()`
-  * Can contain elements of any data type
-  * Accessible by index when cast to list (e.g., `list(mydict[0][0])`) or natively by name (e.g., `mydict['firstelement']['firstsub_element']`)
-  
-* Python also has a dictionary subclass called an [Ordered Dictionary](https://realpython.com/python-ordereddict/#:~:text=Python's%20OrderedDict%20is%20a%20dict,then%20the%20order%20remains%20unchanged.).
+* Python has a dictionary subclass called an [Ordered Dictionary](https://realpython.com/python-ordereddict/#:~:text=Python's%20OrderedDict%20is%20a%20dict,then%20the%20order%20remains%20unchanged.).
   * An 'ordered dictionary' is subclass of dictionary that preserves the order of key-value pairs.
   * Since ordered dictionaries are natively accessible by index and by name, they are practically identical to an R list and will be ideal for this project.
 
@@ -67,7 +62,7 @@ Since `library(reticulate)` lets us access R objects from our python session, we
 ```{python}
 r.r_metadata.__class__
 ```
-`reticulate` interprets an `R list` as a `python dict`.
+`reticulate` interprets an `R list` as a `python r.r_metadata.__class__`.
 
 ### Objective 1, task 2: re-create an `emld`
 
@@ -148,7 +143,7 @@ Confirm that `R emld` and `python emld` match exactly so far:
 print(f"Is the length of `['@context']` equal in both emlds? {len(r.r_metadata['@context']) == len(py_metadata['@context'])}\n")
 
 for i in range(0, len(py_metadata)):
-    print(f"Is '{list(py_metadata['@context'])[i]}' identical in `R emld`? {list(py_metadata['@context'])[i] == r.names_r_metadata_context[i]}")
+  print(f"Is '{list(py_metadata['@context'])[i]}' identical in `R emld`? {list(py_metadata['@context'])[i] == r.names_r_metadata_context[i]}")
 ```
 What is the value stored in ```r_metadata$`@context`$`@vocab````?
 
@@ -164,18 +159,22 @@ r_original_xml <- xml2::read_xml('C:/Users/cwainright/OneDrive - DOI/Documents/d
 xml_attrs(r_original_xml)[["xmlns:eml"]] # this is the value EML::read_eml() routes to r_metadata$`@context`$`@vocab`
 xml_attrs(r_original_xml)[["xmlns:eml"]] == r_metadata$`@context`$`@vocab`
 ```
+Where in the python xml document can we find the same value?
+
+```{python}
+import xmltodict
+with open('C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor/sandbox/2022_NCRN_forest_vegetation_metadata.xml', 'r', encoding='utf-8') as file:
+  my_xml = file.read()
+    
+my_dict = xmltodict.parse(my_xml)
+```
+
 Find that same value in our python dictionary and assign it to the correct metadata element:
 ```{python}
 print(f'this value is avaliable in the xml doc `my_dict["eml:eml"]["@xmlns:eml"]`: {my_dict["eml:eml"]["@xmlns:eml"]}') # find the correct value to assign
 
 # assign value to metadata element
-# in our example, the correct value ends in a backslash
-# however, in our metadata, the value of my_dict["eml:eml"]["@xmlns:eml"] does not end in a backslash
-# I haven't figured out where the backslash comes from but the two options seem to be:
-  # 1) string split the url associated with the EML schemaLocation `xml_attrs(r_original_xml)[["schemaLocation"]]` (it appears this is NOT what library(EML) does...) https://github.com/ropensci/emld/blob/master/R/eml_version.R
-  # 2) concatenate a backslash to the EML version namespace (I also haven't found any code indicating that library(EML) does this...)
-  
-# despite not knowing HOW library(EML) arrives at the correct answer, I can make our program arrive at the correct answer:
+# Line 118 here concatenates a forward slash: https://github.com/ropensci/emld/blob/master/R/as_emld.R
 if my_dict["eml:eml"]["@xmlns:eml"][-1:] != '/':
   py_metadata["@context"]["@vocab"] = my_dict["eml:eml"]["@xmlns:eml"] + '/' 
 if my_dict["eml:eml"]["@xmlns:eml"][-1:] == '/':
@@ -233,5 +232,10 @@ if my_dict["eml:eml"]["@xmlns:xsi"][-1:] == '/':
 print(f'we assigned {py_metadata["@context"]["xsi"]} to `py_metadata["@context"]["xsi"]`')  # check our work
 ```
 
+Where in our xml document is `EML::read_eml()` pulling that value for ```r_metadata$`@context`$xml``` from?
+
+```{r}
+"1998" %in% mycharvar
+```
 
 
