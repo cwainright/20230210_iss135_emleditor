@@ -7,8 +7,12 @@ from collections import OrderedDict # https://realpython.com/python-ordereddict/
 import xmltodict
 
 """Start a metadata object"""
-py_metadata = OrderedDict(zip(r.names_r_metadata, [None]*len(r.r_metadata))) # empty metadata object with named & ordered elements
-py_metadata["@context"] = dict(zip(r.names_r_metadata_context, [None]*len(r.names_r_metadata_context))) # add sub-elements to metadata object
+# define static assets
+NAMES_METADATA = ("@context", "@type", "additionalMetadata", "dataset", "packageId", "schemaLocation", "system") # top-level elements, determined by examining R object produced by EML::read_eml()
+NAMES_METADATA_CONTEXT = ("@vocab", "eml", "xsi", "xml", "stmml", "id", "@base")
+
+py_metadata = OrderedDict(zip(NAMES_METADATA, [None]*len(NAMES_METADATA))) # empty metadata object with named & ordered elements
+py_metadata["@context"] = dict(zip(NAMES_METADATA_CONTEXT, [None]*len(NAMES_METADATA_CONTEXT))) # add sub-elements to metadata object
 
 """Read xml to dictionary"""
 with open('C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor/sandbox/2022_NCRN_forest_vegetation_metadata.xml', 'r', encoding='utf-8') as file:
