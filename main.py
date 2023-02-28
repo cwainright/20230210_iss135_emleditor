@@ -8,11 +8,9 @@ importlib.reload(emld)
 A mock workflow to test how py_emleditor
 '''
 myfile = 'C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/20230210_iss135_emleditor/sandbox/2022_NCRN_forest_vegetation_metadata.xml'
-mywrongfile = "myworkbook.xlsx"
 myemld = emld.Emld(filepath = myfile)
 
 
 
-mycar = emld.Car(make="mycar", model="mymodel")
 
 
