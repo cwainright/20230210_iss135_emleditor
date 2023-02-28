@@ -1,5 +1,6 @@
 from collections import OrderedDict # https://realpython.com/python-ordereddict/#:~:text=Python's%20OrderedDict%20is%20a%20dict,then%20the%20order%20remains%20unchanged.
 import xmltodict
+import dicttoxml
 import emld
 import importlib
 importlib.reload(emld)
@@ -11,6 +12,8 @@ myfile = 'C:/Users/cwainright/OneDrive - DOI/Documents/data_projects/2023/202302
 myemld = emld.Emld(filepath = myfile)
 
 
+myemld.set_cui(eml_object=myemld, cui_code="abc", force=True, NPS=True)
 
+mytestoutput = dicttoxml.dicttoxml(myemld)
 
 

@@ -2,6 +2,7 @@
 
 from collections import OrderedDict # https://realpython.com/python-ordereddict/#:~:text=Python's%20OrderedDict%20is%20a%20dict,then%20the%20order%20remains%20unchanged.
 import xmltodict
+import dicttoxml
 
 # define static assets outside of class instances
 NAMES_METADATA = ("@context", "@type", "additionalMetadata", "dataset", "packageId", "schemaLocation", "system") # top-level elements, determined by examining R object produced by EML::read_eml()
@@ -82,6 +83,20 @@ class Emld:
         # Assign a value to self.emld["@context"]["@base"]
         self.emld["@type"] = "EML"
         
+        self.__class__ = collections.OrderedDict
+        
         print("Emld instance created!")
         
+    def set_cui(self, cui_code = ("PUBLIC", "NOCON", "DL_ONLY", "FEDCON", "FED_ONLY"), force = False, NPS = True):
+        '''Setter function for controlled unclassified information (CUI)'''
+        # @param cui_code a string consisting of one of 7 potential CUI codes (defaults to "PUBFUL").
+            # FED_ONLY - Contains CUI. Only federal employees should have access (similar to "internal only" in DataStore)
+            # FEDCON - Contains CUI. Only federal employees and federal contractors should have access (also very much like current "internal only" setting in DataStore)
+            # DL_ONLY - Contains CUI. Should only be available to a names list of individuals (where and how to list those individuals TBD)
+            # NOCON - Contains  CUI. Federal, state, local, or tribal employees may have access, but contractors cannot.
+            # PUBLIC - Does NOT contain CUI.
+        
+        # verify CUI code entry; stop if does not equal one of six valid codes listed above:
+        assert cui_code in ("PUBLIC", "NOCON", "DL_ONLY", "FEDCON", "FED_ONLY"), 'You must choose a cui_code from the pick-list: ("PUBLIC", "NOCON", "DL_ONLY", "FEDCON", "FED_ONLY")'
+        self.emld["dataset"]["title"] = cui_code
 
