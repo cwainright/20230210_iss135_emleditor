@@ -83,7 +83,7 @@ class Emld:
         # Assign a value to self.emld["@context"]["@base"]
         self.emld["@type"] = "EML"
         
-        self.__class__ = collections.OrderedDict
+        # self.__class__ = collections.OrderedDict
         
         print("Emld instance created!")
         
@@ -99,4 +99,23 @@ class Emld:
         # verify CUI code entry; stop if does not equal one of six valid codes listed above:
         assert cui_code in ("PUBLIC", "NOCON", "DL_ONLY", "FEDCON", "FED_ONLY"), 'You must choose a cui_code from the pick-list: ("PUBLIC", "NOCON", "DL_ONLY", "FEDCON", "FED_ONLY")'
         self.emld["dataset"]["title"] = cui_code
+        
+    def write_eml(self, destination_filename, attr_type = False):
+        '''Write eml to .xml'''
+        # @param destination_filename
+            # the name and filepath, including the .xml file extension, where the Emld.emld should be saved
+        # @param attr_type
+            # default value is False
+            # True adds an attribute to every xml tag that specifies the data type stored in that tag
+            # e.g., If a tag holds string data (str), its tag might be this: <mytag type="str">
+        mytestoutput = dicttoxml(self.emld, attr_type = attr_type)
+        xml_decode = mytestoutput.decode()
+        xmlfile = open(destination_filename, "w")
+        xmlfile.write(xml_decode)
+        xmlfile.close()
+        
+    def print_eml(self):
+        '''Pretty-print xml to console'''
+        print(parseString(self.emld).toprettyxml())
+    
 
