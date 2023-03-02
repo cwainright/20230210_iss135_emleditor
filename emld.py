@@ -363,7 +363,7 @@ class Emld():
             print("error in printing eml")
             
         '''
-        Eventually, we're going to need to adjust the tag attributes to match the spec.
+        Eventually, we're going to need to adjust the way we print tag attributes to match the EML spec.
         We need to duplicate <additionalMetadata><metadata> tags from myemld.emld["additionalMetadata"]["metadata"] to look like this:
             
         <additionalMetadata id="CUI">
@@ -380,11 +380,25 @@ class Emld():
             </metadata>
         </additionalMetadata>
         
-        We can duplicate tags and assign attribute "id" a value by looping over our dictionary like this:
+        Our current data structure would omit the id attribute and fail to duplicate tags and would look like this:
+            
+        <additionalMetadata>
+            <metadata>
+                <CUI>PUBLIC</CUI>
+                <emlEditor>
+                    <app>EMLassemblyline</app>
+                    <release>3.5.5</release>
+                </emlEditor>
+            </metadata>
+        </additionalMetadata>
+        
+        To overcome this, we'll duplicate tags and assign attribute "id" a value by looping over our dictionary like this:
         for thing in myemld.emld["additionalMetadata"]["metadata"]:
             if thing != 'emlEditor':
                 print(thing)
-        but instead of printing, we need to assign tags and attributes like xml2::xml_add_child() and xml2::xml_set_attr()
+        where a "thing" is the value of the `id` attribute and we duplicate <additionalMetadata><metadata> len(myemld.emld["additionalMetadata"]["metadata"]) times
+        in R we accomplish this with a for loop and xml2::xml_add_child() and xml2::xml_set_attr()
+        in python it seems like we use the append method... https://stackoverflow.com/questions/43883650/insert-xml-string-from-a-dicttoxml-object-into-a-lxml-etree
         '''
     
 
