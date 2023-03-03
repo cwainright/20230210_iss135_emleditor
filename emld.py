@@ -6,11 +6,24 @@ import dicttoxml
 from xml.dom.minidom import parseString
 import importlib
 
-# constants for __init__()
+# CONSTANTS
 NAMES_METADATA = ("@context", "@type", "additionalMetadata", "dataset", "packageId", "schemaLocation", "system") # top-level elements, determined by examining R object produced by EML::read_eml()
 NAMES_METADATA_CONTEXT = ("@vocab", "eml", "xsi", "xml", "stmml", "id", "@base")
+CUI_CHOICES = {
+    'PUBLIC': 'Contains CUI. Only federal employees should have access (similar to "internal only" in DataStore)',
+    'NOCON': 'Contains  CUI. Federal, state, local, or tribal employees may have access, but contractors cannot.',
+    'DL_ONLY': 'Contains CUI. Should only be available to a names list of individuals (where and how to list those individuals TBD)',
+    'FEDCON': 'Contains CUI. Only federal employees and federal contractors should have access (also very much like current "internal only" setting in DataStore)',
+    'FED_ONLY': 'Contains CUI. Only federal employees should have access (similar to "internal only" in DataStore)'
+}
+INT_RIGHTS_CHOICES = ('CC0', 'public', 'restricted')
 CURRENT_RELEASE = '0.0.1'
 APP_NAME = "pyEML"
+LICENSE_TEXT = {
+                    'CCzero': 'This product is released to the "public domain" under Creative Commons CC0 1.0 No Rights Reserved (see: https://creativecommons.org/publicdomain/zero/1.0/).',
+                    'pub_domain': 'This product is released to the "public domain" under U.S. Government Works No Rights Reserved (see: http://www.usa.gov/publicdomain/label/1.0/).',
+                    'restrict': 'This product has been determined to contain Controlled Unclassified Information (CUI) by the National Park Service, and is intended for internal use only. It is not published under an open license. Unauthorized access, use, and distribution are prohibited.'
+        }
 
 class Emld():
     """An object that holds metadata extracted from an EML-formatted xml file"""
@@ -86,12 +99,12 @@ class Emld():
             self.NPS = NPS # save this value to pass
             self._add_required()
             
-            print("Emld instance created!") # print success message
+            print("Emld instance created!\n") # print success message
         except:
             print("An error occurred and your Emld did not instantiate.")
             
-    def set_cui(self, cui_code:str = ("PUBLIC", "NOCON", "DL_ONLY", "FEDCON", "FED_ONLY"), force:bool = False):
-        '''Setter function for controlled unclassified information (CUI)'''
+    def set_cui(self, cui_code:str = CUI_CHOICES, force:bool = False):
+        '''Set the data package's controlled unclassified information (CUI) status'''
         # @param cui_code a string consisting of one of 7 potential CUI codes (defaults to "PUBFUL").
             # FED_ONLY - Contains CUI. Only federal employees should have access (similar to "internal only" in DataStore)
             # FEDCON - Contains CUI. Only federal employees and federal contractors should have access (also very much like current "internal only" setting in DataStore)
@@ -107,7 +120,7 @@ class Emld():
         # https://www.geeksforgeeks.org/turning-a-dictionary-into-xml-in-python/
 
         # verify CUI code entry; stop if does not equal one of six valid codes listed above:
-        assert cui_code in ("PUBLIC", "NOCON", "DL_ONLY", "FEDCON", "FED_ONLY"), 'You must choose a `cui_code` from the pick-list: ("PUBLIC", "NOCON", "DL_ONLY", "FEDCON", "FED_ONLY")'
+        assert cui_code in CUI_CHOICES, print(f'You must choose a `cui_code` from the pick-list:\n{self.describe_cui()}')
         assert force in (True, False), "Parameter `force` must be either True or False."
 
         # procedure
@@ -115,13 +128,23 @@ class Emld():
             if force == True:
                 # self.emld["additionalMetadata"]["metadata"]['@id'] = "CUI" # set the value of attribute "id" in <additionalMetadata id=fill_in_the_blank> with "CUI"
                 self.emld["additionalMetadata"]["metadata"]["CUI"] = cui_code   # set the value of <metadata><CUI>
-                print(f"Value of <CUI> set to '{cui_code}'!")
+                print(f"Value of `CUI` set to '{cui_code}'!")
             else:
                 pass
         except:
             print("CUI did not update.")
+            
+    def describe_cui(self):
+        '''Print the `CUI` (controlled unclassified information) choices to console'''
+        
+        print(f'`CUI` means controlled unclassified information. The following `CUI` choices are available in this release of {APP_NAME}:')
+        print('----------')
+        for k, v in CUI_CHOICES.items():
+            print(f'\'{k}\': {v}\n')
+        
 
     def set_title(self, data_package_title:str, force:bool = False):
+        '''Set the title of the data package'''
         # @param data_package_title str
             # The title the user wants to change their data package title to
             # e.g., data_package_title = "My new title"
@@ -151,37 +174,65 @@ class Emld():
         except:
             print("Title did not update.")
         
-    def set_int_rights(self, license:str = ("CC0", "public", "restricted"), force:bool = False):
+    def set_int_rights(self, license:str = INT_RIGHTS_CHOICES, force:bool = False):
+        '''Set the intellectual property rights of the data package'''
         # @param license str
             # The intellectual rights the user wants to set for their data package
-            # e.g., data_package_title = "My new title"
+            # e.g., license = "public"
         # @param force bool
             # Default False
-            # True means the program will over-write any value in <metadata><CUI> if one exists or create that tag and add `license` if !exists
-            # False prints the value of <metadata><CUI> to console and asks the user to decide to over-write or not
-
-        license_text = {
-            'CCzero': 'This product is released to the "public domain" under Creative Commons CC0 1.0 No Rights Reserved (see: https://creativecommons.org/publicdomain/zero/1.0/).',
-            'pub_domain': 'This product is released to the "public domain" under U.S. Government Works No Rights Reserved (see: http://www.usa.gov/publicdomain/label/1.0/).',
-            'restrict' <- 'This product has been determined to contain Controlled Unclassified Information (CUI) by the National Park Service, and is intended for internal use only. It is not published under an open license. Unauthorized access, use, and distribution are prohibited.'
-        }
-
+            # True means the program will over-write any value in ["dataset"]["intellectualRights"] if one exists or create add value if !exists
+            # False prints the value of ["dataset"]["intellectualRights"] to console and asks the user to decide to over-write or not
+        
         # validate user input
         assert license != "", "Parameter `license` cannot be blank"
+        assert license in INT_RIGHTS_CHOICES
         assert force in (True, False), "Parameter `force` must be either True or False."
-        assert NPS in (True, False), "Parameter `NPS` must be either True or False."
 
         # procedure
         try:
-            if force == True:
+            if "CUI" not in self.emld["additionalMetadata"]["metadata"]:
+                print("This data package's controlled unclassified information status, `CUI`, must be set before setting the package's intellectual property rights.\n")
+                print("First, use the `set_cui()` method to set your dataset's `CUI`.")
+                print("Then, re-try the `set_int_rights()` method to set your dataset's intellectual property rights.")
                 pass
-            if force == False:
-                pass
+            else:
+                print(f'`CUI` value in data package was: \'{self.emld["additionalMetadata"]["metadata"]["CUI"]}\'.\n')
+                if self.emld["additionalMetadata"]["metadata"]["CUI"] == 'PUBLIC': # Public CUI has two acceptable license choices: 'CC0' and 'pub_domain'
+                    if license == 'CC0':
+                        self.emld["dataset"]["intellectualRights"] = LICENSE_TEXT["CCzero"]
+                        print(f'Data package `intellectual rights` set to {license}!')
+                    elif license == 'public':
+                        self.emld["dataset"]["intellectualRights"] = LICENSE_TEXT["pub_domain"]
+                        print(f'Data package `intellectual rights` set to {license}!')
+                    else:
+                        print(f'Assigning \'{license}\' as your data package\'s intellectual rights will contradict your data package\'s controlled unclassified information `CUI` status of {self.emld["additionalMetadata"]["metadata"]["CUI"]}.\n')
+                        print('To resolve this conflict, you must make your data package\'s `CUI` and `intellectual_rights` agree.\n')
+                        print('If you really want to restrict intellectual rights on your data package, use the `set_cui()` method to set `CUI` to "NOCON", "DL_ONLY", "FEDCON", or "FED_ONLY" and then re-try `set_int_rights()`.')
+                        print('If your dataset will be published to the public, its intellectual rights must be public-facing (i.e., \'CCO\' or \'public\').')
+                else:
+                    if licence == 'restrict':
+                        self.emld["dataset"]["intellectualRights"] = LICENSE_TEXT["restrict"]
+                        print(f'Data package `intellectual rights` set to {license}!')
+                    else:
+                        print(f'Assigning \'{license}\' as your data package\'s intellectual rights will contradict your data package\'s controlled unclassified information `CUI` status of {self.emld["additionalMetadata"]["metadata"]["CUI"]}.')
+                        print('To resolve this conflict, you must make your data package\'s `CUI` and `intellectual_rights` agree.\n')
+                        print('If you really want to restrict intellectual rights on your data package, use the `set_cui()` method to set `CUI` to "NOCON", "DL_ONLY", "FEDCON", or "FED_ONLY" and then re-try `set_int_rights()`.')
+                        print('If your dataset will be published to the public, its intellectual rights must be public-facing (i.e., \'CCO\' or \'public\').')
         except:
-            print("Title did not update.")
+            print('An error occurred when attempting to set data package intellectual rights.')
+            print('This error can only occur from the data package having an unacceptable `CUI` or `license` value.')
+            print('Check your data package\'s `CUI` and the `license` that you provided this method.')
+    def describe_int_rights(self):
+        '''Print the `intellectual rights` choices to console'''
+        
+        print(f'The following `intellectual rights` choices are available in this release of {APP_NAME}:')
+        print('----------')
+        for k, v in LICENSE_TEXT.items():
+            print(f'\'{k}\': {v}\n')
     
     def _set_npspublisher(self):
-        '''set the publisher for the dataset'''
+        '''Set the publisher for the dataset'''
         
         PUBSET = {
             'organizationName': 'National Park Service',
