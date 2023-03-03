@@ -3,7 +3,9 @@ import xmltodict
 from dicttoxml import dicttoxml
 import emld
 import importlib
+import json
 from xml.dom.minidom import parseString
+import iso639
 importlib.reload(emld)
 
 '''
@@ -27,7 +29,34 @@ myemld.set_title(data_package_title = "my new title")
 myemld.emld["dataset"]["title"]
 
 # test `set_int_rights()` to set intellectual rights
+myemld.set_int_rights(license = "CCzero", force = True)
+myemld.set_int_rights(license = "pub_domain", force = True)
+myemld.set_int_rights(license = "restrict", force = False)
 myemld.set_int_rights(license = "restrict", force = True)
+
+# test `set_doi()`
+myemld.emld["dataset"]["alternateIdentifier"] # is there an identifier now?
+myemld.set_doi('1234567', force = False) # set the identifier
+myemld.emld["dataset"]["alternateIdentifier"] # confirm set
+myemld.set_doi('7654321', force = False) # choose n to NOT overwrite. interactive, should prompt user for y/n to overwrite
+myemld.emld["dataset"]["alternateIdentifier"] # confirm
+myemld.set_doi('7654321', force = False) # choose y to overwrite. interactive, should prompt user for y/n to overwrite
+myemld.emld["dataset"]["alternateIdentifier"] # confirm
+myemld.set_doi('1234567', force = True) # silently overwrite with `force`
+myemld.set_doi('123', force = True) # try short value, should error
+myemld.set_doi('123456a', force = True) # try to include letter
+myemld.set_doi(1234567, force = True) # try giving it a number, should error
+
+# test `set_drr()`
+print(json.dumps(myemld.emld["dataset"]["usageCitation"], indent=4, default=str))
+myemld.set_drr(drr_ref_id = '2293234', drr_title = 'Data Release Report for Data Package 1234')
+myemld.set_drr(drr_ref_id = '1234567', drr_title = 'Data Release Report for Data Package abc', force = True)
+myemld.set_drr(drr_ref_id = '1234567', drr_title = 'Data Release Report for Data Package abc', force = False)
+myemld.set_drr(drr_ref_id = '7777777', drr_title = 'Data Release Report for Data Package 77', force = True)
+
+# test `set_language()`
+myemld.emld["dataset"]["language"]
+myemld.set_language()
 
 # print the eml to console
 myemld.print_eml()
@@ -35,6 +64,5 @@ myemld.print_eml()
 # write the eml to file
 myemld.write_eml(destination_filename="sandbox/mytestoutput2.xml")
 
-
-
-
+mytest = languages.get(name = 'English')
+mytest = languages.name

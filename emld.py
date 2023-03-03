@@ -5,8 +5,11 @@ import xmltodict
 import dicttoxml
 from xml.dom.minidom import parseString
 import importlib
+import json
+import iso639
 
-# CONSTANTS
+# GLOBAL CONSTANTS
+# definied outside a class instance to be available to all methods but invisible to the user
 NAMES_METADATA = ("@context", "@type", "additionalMetadata", "dataset", "packageId", "schemaLocation", "system") # top-level elements, determined by examining R object produced by EML::read_eml()
 NAMES_METADATA_CONTEXT = ("@vocab", "eml", "xsi", "xml", "stmml", "id", "@base")
 CUI_CHOICES = {
@@ -24,6 +27,7 @@ LICENSE_TEXT = {
                     'pub_domain': 'This product is released to the "public domain" under U.S. Government Works No Rights Reserved (see: http://www.usa.gov/publicdomain/label/1.0/).',
                     'restrict': 'This product has been determined to contain Controlled Unclassified Information (CUI) by the National Park Service, and is intended for internal use only. It is not published under an open license. Unauthorized access, use, and distribution are prohibited.'
         }
+NPS_DOI_ADDRESS = 'https://doi.org/10.57830/'
 
 class Emld():
     """An object that holds metadata extracted from an EML-formatted xml file"""
@@ -223,6 +227,7 @@ class Emld():
             print('An error occurred when attempting to set data package intellectual rights.')
             print('This error can only occur from the data package having an unacceptable `CUI` or `license` value.')
             print('Check your data package\'s `CUI` and the `license` that you provided this method.')
+   
     def describe_int_rights(self):
         '''Print the `intellectual rights` choices to console'''
         
@@ -289,7 +294,6 @@ class Emld():
                 'agency': "NPS",
                 'byOrForNPS': "TRUE"
             }
-        # print("got past for_by{}")
         
         # procedure
         addl_md_len = len(self.emld["additionalMetadata"]) # variable to track length
@@ -303,8 +307,191 @@ class Emld():
                 # print("len >= 1")
                 self.emld['additionalMetadata']["metadata"]["agencyOriginated"] = FOR_BY2 # add a shortened version of the whole deal
     
+    def set_doi(self, ds_ref:str, force:bool = False):
+        '''Set the data package's DOI'''
+        
+        # @param ds_ref str
+            # the same as the 7-digit reference code generated on DataStore when a draft reference is initiated.
+            # e.g., license = "public"
+        # @param force
+            # Default False
+            # False will overwrite existing doi values or create a new doi value if !exists
+        
+        # validate user input
+        assert len(ds_ref) == 7, 'A valid data package DOI is seven characters long; check the DOI you provided as `ds_ref`.'
+        assert ds_ref.isnumeric() == True, 'A valid data package DOI contains only numbers; check the DOI you provided as `ds_ref`.'
+        assert force in (True, False), "Parameter `force` must be either True or False."
+        
+        # procedure
+        try:
+            if force == True:
+                print("got to force = true")
+                self.emld["dataset"]["alternateIdentifier"] = 'doi: ' + NPS_DOI_ADDRESS + ds_ref
+            else:
+                if 'alternateIdentifier' in self.emld["dataset"]:
+                    print(f'This data package has currently has a doi of \'{self.emld["dataset"]["alternateIdentifier"]}\'.')
+                    user_choice = input("Do you want to overwrite your original doi?\n'y' then enter to overwrite or 'n' then enter to keep original doi\n\n")
+                    if user_choice != 'y':
+                        print(f'You chose to keep the dataset\'s original doi: \'{self.emld["dataset"]["alternateIdentifier"]}\'')
+                        pass
+                    else:
+                        self.emld["dataset"]["alternateIdentifier"] = 'doi: ' + NPS_DOI_ADDRESS + ds_ref
+                        print(f'You overwrote the data package\'s doi to: \'{NPS_DOI_ADDRESS + ds_ref}\'!')
+                else:
+                    print(f'No alternate identifier (doi) was found in dataset. Updating to \'{ds_ref}\' now...')
+                    self.emld["dataset"]["alternateIdentifier"] = 'doi: ' + NPS_DOI_ADDRESS + ds_ref
+                    print(f'Dataset doi updated to \'{NPS_DOI_ADDRESS + ds_ref}\'!')
+        except:
+            print('Unable to set data package doi.\n')
+            print('Check the current value of your data package\'s `alternateIdentifier` and the `ds_ref` that you provided.')
+                    
+                    
+    def set_drr(self, drr_ref_id:str, drr_title:str, org_name:str = 'NPS', force = False):
+        '''Set the value of the dataset's DRR'''
+        
+        # @param drr_ref_id
+            # A 7-digit string that is the DataStore Reference ID for the DRR associated with the data package.
+        # @param drr_title
+            # The title of the DRR as it appears in the DataStore Reference.
+        # @param org_name
+            # Default 'NPS'
+            # If the organization publishing the DRR is *not* NPS, set org_name to your publishing organization's name.
+        # @param force
+            # Default False
+            # False will overwrite existing values and/or create key-value pairs if necessary
+            
+        # @examples
+            # drr_title = 'Data Release Report for Data Package 1234'
+            # myemld.set_drr(drr_ref_id = '2293234', drr_title = drr_title)
+        
+        # validate user input
+        assert len(drr_ref_id) == 7, 'A valid data package DataStore Reference is seven characters long; check the DOI you provided as `drr_ref_id`.'
+        assert force in (True, False), "Parameter `force` must be either True or False."
+        
+        # procedure
+        if 'creator' in self.emld["dataset"]:
+            CREATOR = self.emld["dataset"]["creator"]
+        else:
+            CREATOR = {
+                'organization': org_name
+            }
+        
+        USAGE_CITATION = {
+            'alternateIdentifier': 'DRR: https://doi.org/10.36967/' + drr_ref_id,
+            'title': drr_title,
+            'creator': CREATOR,
+            'report': drr_ref_id,
+            'id': 'associatedDRR'
+        }
+        
+        try:
+            if force == True:
+                if 'usageCitation' in self.emld["dataset"]:
+                    print(f'Your dataset originally had a DRR of:')
+                    print('----------')
+                    print(json.dumps(self.emld["dataset"]["usageCitation"], indent=4, default=str))
+                    print('----------')
+                    print('Choosing `force` = True overwrote to:')
+                    print('----------')
+                    self.emld["dataset"]["usageCitation"] = USAGE_CITATION
+                    print(json.dumps(self.emld["dataset"]["usageCitation"], indent=4, default=str))
+                    print('----------')
+            else:
+                if 'usageCitation' not in self.emld["dataset"]:
+                    print('No existing DRR information found in this dataset.')
+                    print('Writing DRR information to dataset...')
+                    self.emld["dataset"]["usageCitation"] = USAGE_CITATION
+                    print('New DRR information:')
+                    print('----------')
+                    print(json.dumps(self.emld["dataset"]["usageCitation"], indent=4, default=str))
+                else:
+                    print('Existing DRR information was found in this dataset:')
+                    print('----------')
+                    print(json.dumps(self.emld["dataset"]["usageCitation"], indent=4, default=str))
+                    print('----------')
+                    print('Do you want to over-write the existing DRR information?')
+                    user_choice = input('Do you want to over-write the existing DRR information?\n\'y\' then enter to overwrite or \'n\' then enter to keep original title\n\n')
+                    if user_choice != 'y':
+                        print(f'User input: \'{user_choice}\'')
+                        print('You chose to keep your data package\'s existing DRR information.')
+                        pass
+                    else:
+                        self.emld["dataset"]["usageCitation"] = USAGE_CITATION
+                        print(f"User input: \'{user_choice}'\. You overwrote your original data package DRR to:")
+                        print('----------')
+                        print(json.dumps(self.emld["dataset"]["usageCitation"], indent=4, default=str))
+                        print('----------')
+        except:
+            print("Unable to update dataset DRR.")
+            print("Check the parameters provided to `set_drr()` for accuracy.")
+            pass
+        
+    def set_language(self, language:str = 'English', force:bool = False):
+        '''Specify the language that the data package was constructed in.'''
+        
+        # @param language
+            # Default 'English'
+            # The English words for the language the data and metadata were constructed in (e.g. 'English' or 'Spanish').
+            # User input is automatically converted to the the 3-letter codes for languages listed in ISO 639-2
+            # (available at https://www.loc.gov/standards/iso639-2/php/code_list.php) and inserted into the metadata.
+        # @param force
+            # Default False
+            # False will overwrite existing values and/or create key-value pairs if necessary
+        
+        # @examples
+            # myemld.set_language(language = 'english', force = True)
+            # myemld.set_language(language = 'SpAnISh', force = True)
+            # myemld.set_language(language = 'Navajo', force = True)
+            
+        # validate user input
+        assert force in (True, False), "Parameter `force` must be either True or False."
+        
+        # procedure
+        LANGUAGE = language.title() # enforce ISO capitalization
+        if LANGUAGE == 'Spanish':
+            LANGUAGE = 'Spanish; Castilian'
+        if LANGUAGE == 'Iroquois':
+            LANGUAGE == 'Iroquoian languages'
+            
+        try:
+            LANGUAGE_OBJ = iso639.languages.get(name = LANGUAGE)
+            if LANGUAGE_OBJ is None:
+                print(f'\'{language}\' was not found in the ISO 639-2 database.')
+                print('https://www.loc.gov/standards/iso639-2/php/code_list.php')
+                print('Please provide `set_language()` with a language name present in the ISO 639-2 \'English name of Language\' column.')
+            else:
+                LANGUAGE = LANGUAGE_OBJ.part3
+                if len(LANGUAGE) != 3:
+                    print('language length error')
+                    print('An error occurred when parsing the language to its ISO code.')
+                    pass
+                else:
+                    if force == True:
+                        self.emld["dataset"]["language"] = LANGUAGE
+                        print(f'Dataset language set to {LANGUAGE}!')
+                    else:
+                        print('ended up in else block')
+                        if 'language' in self.emld["dataset"]:
+                            print(f'The dataset\'s language is currently \'{self.emld["dataset"]["language"]}\'')
+                            user_choice = input("Do you want to overwrite the dataset's current language?\n'y' then enter to overwrite or 'n' then enter to keep original doi\n\n")
+                            if user_choice != 'y':
+                                print(f'User input: {user_choice}')
+                                print(f'You chose to keep the dataset\'s original language: \'{self.emld["dataset"]["language"]}\'')
+                                pass
+                            else:
+                                print(f'User input: {user_choice}')
+                                self.emld["dataset"]["language"] = LANGUAGE
+                                print(f'You overwrote the data package\'s language to: \'{self.emld["dataset"]["language"]}\'!')
+                        else:
+                            self.emld["dataset"]["language"] = LANGUAGE
+                            print(f'Dataset language set to {LANGUAGE}!')
+        except:
+            print(f'\'{language}\' was not found in the ISO 639-2 database.')
+            print('https://www.loc.gov/standards/iso639-2/php/code_list.php')
+            print('Please provide `set_language()` with a language name present in the ISO 639-2 \'English name of Language\' column.')
+        
     def _set_version(self):
-        '''Set the value of ["additionalMetadata"]["metadata"]["emlEditor"]'''
+        '''Set the value of `app` and `release`.'''
         
         # delete context attribute from ["additionalMetadata"]
         try: # not sure why this is necessary but line 167 does this https://github.com/nationalparkservice/EMLeditor/blob/main/R/utils.R
