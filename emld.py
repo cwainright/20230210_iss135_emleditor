@@ -74,19 +74,12 @@ class Emld():
             self.emld["system"] = my_dict["eml:eml"]["@system"] # Assign a value to self.emld["schemaLocation"]
             self.emld["@type"] = "EML" # Assign a value to self.emld["@context"]["@base"]
             
-            # self.emld["dataset"]["publisher"] = PUBSET # enforce class requirement: set publisher to NPS-required values
-            
-            # add_required(self) # enforce class Emld requirements
-            self.add_required()
-            # self.test_init()
+            self._add_required()
             
             print("Emld instance created!") # print success message
         except:
             print("An error occurred and your Emld did not instantiate.")
             
-    def test_init(self):
-        print("got to test_init()")
-        
     def set_cui(self, cui_code:str = ("PUBLIC", "NOCON", "DL_ONLY", "FEDCON", "FED_ONLY"), force:bool = False, NPS:bool = True):
         '''Setter function for controlled unclassified information (CUI)'''
         # @param cui_code a string consisting of one of 7 potential CUI codes (defaults to "PUBFUL").
@@ -217,7 +210,7 @@ class Emld():
     #     except:
     #         print("Title did not update.")
     
-    def set_npspublisher(self):
+    def _set_npspublisher(self):
         '''set the publisher for the dataset'''
         
         PUBSET = {
@@ -253,7 +246,7 @@ class Emld():
         # line 15 https://github.com/nationalparkservice/EMLeditor/blob/main/R/utils.R
         self.emld["dataset"]["publisher"] = PUBSET
         
-    def set_for_by_nps(self):
+    def _set_for_by_nps(self):
         '''Set the value of ["additionalMetadata"]["metadata"]["agencyOriginated"]'''
         
         # delete context attribute from ["additionalMetadata"]
@@ -289,7 +282,7 @@ class Emld():
                 print("len >= 1")
                 self.emld['additionalMetadata']["metadata"]["agencyOriginated"] = FOR_BY2 # add a shortened version of the whole deal
                 
-    def add_required(self):
+    def _add_required(self):
         '''A method that enforces class Emld data requirements'''
         
         '''
@@ -313,9 +306,9 @@ class Emld():
         
         # procedure
         print("got into add_required()")
-        self.set_npspublisher() # set publisher regardless of other params
+        self._set_npspublisher() # set publisher regardless of other params
         print("got past set_npspublisher()")
-        self.set_for_by_nps() # set publisher regardless of other params
+        self._set_for_by_nps() # set publisher regardless of other params
         print("got past set_for_by_nps()")
         
     def write_eml(self, destination_filename:str, attr_type:bool = False):
