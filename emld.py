@@ -7,6 +7,8 @@ from xml.dom.minidom import parseString
 import importlib
 import json
 import iso639
+import urllib
+import pandas as pd
 
 # GLOBAL CONSTANTS
 # definied outside a class instance to be available to all methods but invisible to the user
@@ -447,28 +449,27 @@ class Emld():
         assert force in (True, False), "Parameter `force` must be either True or False."
         
         # procedure
-        LANGUAGE = language.title() # enforce ISO capitalization
-        if LANGUAGE == 'Spanish':
-            LANGUAGE = 'Spanish; Castilian'
-        if LANGUAGE == 'Iroquois':
-            LANGUAGE == 'Iroquoian languages'
+        language_title = language.title() # enforce ISO capitalization
+        if language_title == 'Spanish':
+            language_title = 'Spanish; Castilian'
+        if language_title == 'Iroquois':
+            language_title = 'Iroquoian languages'
             
         try:
-            LANGUAGE_OBJ = iso639.languages.get(name = LANGUAGE)
-            if LANGUAGE_OBJ is None:
+            language_obj = iso639.languages.get(name = language_title)
+            if language_obj is None:
                 print(f'\'{language}\' was not found in the ISO 639-2 database.')
                 print('https://www.loc.gov/standards/iso639-2/php/code_list.php')
                 print('Please provide `set_language()` with a language name present in the ISO 639-2 \'English name of Language\' column.')
             else:
-                LANGUAGE = LANGUAGE_OBJ.part3
-                if len(LANGUAGE) != 3:
+                language_title = language_obj.part3
+                if len(language_title) != 3:
                     print('language length error')
                     print('An error occurred when parsing the language to its ISO code.')
-                    pass
                 else:
                     if force == True:
-                        self.emld["dataset"]["language"] = LANGUAGE
-                        print(f'Dataset language set to {LANGUAGE}!')
+                        self.emld["dataset"]["language"] = language_title
+                        print(f'Dataset language set to {language_title}!')
                     else:
                         print('ended up in else block')
                         if 'language' in self.emld["dataset"]:
@@ -477,19 +478,115 @@ class Emld():
                             if user_choice != 'y':
                                 print(f'User input: {user_choice}')
                                 print(f'You chose to keep the dataset\'s original language: \'{self.emld["dataset"]["language"]}\'')
-                                pass
                             else:
                                 print(f'User input: {user_choice}')
-                                self.emld["dataset"]["language"] = LANGUAGE
+                                self.emld["dataset"]["language"] = language_title
                                 print(f'You overwrote the data package\'s language to: \'{self.emld["dataset"]["language"]}\'!')
                         else:
-                            self.emld["dataset"]["language"] = LANGUAGE
-                            print(f'Dataset language set to {LANGUAGE}!')
+                            self.emld["dataset"]["language"] = language_title
+                            print(f'Dataset language set to {language_title}!')
         except:
             print(f'\'{language}\' was not found in the ISO 639-2 database.')
             print('https://www.loc.gov/standards/iso639-2/php/code_list.php')
             print('Please provide `set_language()` with a language name present in the ISO 639-2 \'English name of Language\' column.')
         
+    def set_content_units(self, *unit_code:str, force:bool = False, verbose:bool = False):
+        '''Get the decimal degree gps coordinates for a park polygon.'''
+        
+        # @param *unit_code
+            # * indicates an 'arbitrary' argument, meaning the parameter takes any number of comma-separated arguments
+            # Each argument is the four-character location code for one National Park Service location
+            # https://irmaservices.nps.gov/v2/rest/unit/
+        # @param force
+            # Default False
+            # False will overwrite existing values and/or create key-value pairs if necessary
+        # @param verbose
+            # Default False
+            # True prints before & after dataset content units; could be lengthy, depending how many parks are in `unit_code`
+            
+        # @examples
+            # If your Parks were: GLAC: Glacier National Park; ACAD: Acadia National Park
+            # myemld.set_content_units('GLAC', 'ACAD')
+        
+        # for code in unit_code:
+        #     print(f'User entered code: {code} with length {len(code)}.')
+        
+        # # validate user input
+        for code in unit_code:
+            assert len(str(code)) == 4, print(f'Unit code {str(code)} is not four characters in length.')
+
+        # procedure
+        # An API call to NPS Rest Services to get
+        try:
+            polygon_holder = dict() # decimal degrees of all polygon points for each `unit_code`
+            bbox_holder = dict() # bounding box (max & min lat & lon) for each `unit_code`
+            geog_cov = dict() # the bounding box(es) in the format that EML requires
+            for unit in unit_code:
+                # loop over each unit in `unit_code`
+                api_url = 'https://irmaservices.nps.gov/v2/rest/unit/' + str(unit) + '/geography'
+                print(f'API call for {str(unit)}... {api_url}')
+                contents = urllib.request.urlopen(api_url).read()
+                contents = xmltodict.parse(urllib.request.urlopen(api_url).read())
+                contents = contents["ArrayOfUnitGeography"]["UnitGeography"]["Geography"]
+                contents = contents.replace(',', '').replace('\']', '').replace('[\'', '').replace('POLYGON ((', '').replace('))', '').split()
+                park_geom = pd.DataFrame()
+                park_geom["lat"] = contents[1::2] # Elements from list1 starting from 1 iterating by 2
+                park_geom["lon"] = contents[::2]
+                polygon_holder[unit] = park_geom
+                # split into decimal degree bounding box
+                bbox_holder[unit] = {
+                'N': max(polygon_holder[unit]["lat"]),
+                'E': min(polygon_holder[unit]["lon"]),
+                'S': min(polygon_holder[unit]["lat"]),
+                'W': max(polygon_holder[unit]["lon"])
+                }
+                # build EML geographic coverage dict for each unit
+                geog_cov[unit] = {
+                  'geographicDescription': 'NPS Content Unit Link: ' + unit,
+                  'boundingCoordinates': {
+                      'northBoundingCoordinate': bbox_holder[unit]["N"],
+                      'eastBoundingCoordinate': bbox_holder[unit]["E"],
+                      'southBoundingCoordinate': bbox_holder[unit]["S"],
+                      'westBoundingCoordinate': bbox_holder[unit]["W"]
+                    }
+                }
+                # print('----------')
+                # print(f'API call return for {unit}:')
+                # print('----------')
+                # print(json.dumps(geog_cov[unit], indent=4, default=str))
+                # print('----------\n')
+            if force == True:
+                if verbose == True:
+                    print('----------')
+                    print(f'Original content unit(s) for dataset:')
+                    print('----------')
+                    print(json.dumps(self.emld["dataset"]["coverage"]["geographicCoverage"], indent=4, default=str))
+                    print('----------\n')
+                    print('----------')
+                    print(f'Updated content units for dataset:')
+                    self.emld["dataset"]["coverage"]["geographicCoverage"] = geog_cov
+                    print('----------')
+                    print(json.dumps(self.emld["dataset"]["coverage"]["geographicCoverage"], indent=4, default=str))
+                    print('----------\n')
+                else:
+                    self.emld["dataset"]["coverage"]["geographicCoverage"] = geog_cov
+                    print(f'Dataset content units updated for {str(unit_code)}!')
+            else:
+                pass
+                
+        except NameError as e:
+            print('An error prevented your unit codes from processing.')
+            print(e)
+            print('Please check your unit codes for accuracy and try again.')
+        except TypeError as t:
+            print('You entered a unit code of the wrong type.')
+            print(t)
+            print('Please check your unit codes for accuracy and try again.')
+            
+        
+        
+        
+    
     def _set_version(self):
         '''Set the value of `app` and `release`.'''
         

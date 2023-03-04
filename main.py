@@ -6,6 +6,7 @@ import importlib
 import json
 from xml.dom.minidom import parseString
 import iso639
+import urllib
 importlib.reload(emld)
 
 '''
@@ -57,6 +58,9 @@ myemld.set_drr(drr_ref_id = '7777777', drr_title = 'Data Release Report for Data
 # test `set_language()`
 myemld.emld["dataset"]["language"]
 myemld.set_language()
+
+# test `get_content_units()`
+myemld.set_content_units('ACAD', 'GLAC', force = True, verbose = False)
 
 # print the eml to console
 myemld.print_eml()
