@@ -8,6 +8,8 @@ from xml.dom.minidom import parseString
 import iso639
 import urllib
 importlib.reload(emld)
+myemld = emld.Emld(filepath = myfile, NPS = True)
+myemld.set_publisher(org_name = 'mytestorg', street_address = 'The big apple', URL = "a test url", zip_code = '123123')
 
 '''
 A mock workflow to test pyEML
@@ -69,6 +71,9 @@ my_abstract2 = 'This is a different abstract'
 myemld.set_abstract(abstract = my_abstract2, force = False)
 myemld.set_abstract(abstract = my_abstract, force = True)
 
+# test `set_publisher()`
+myemld.emld[]
+myemld.set_publisher(street_address = '123 Abc street', city = 'The big apple')
 
 # print the eml to console
 myemld.print_eml()

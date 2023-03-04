@@ -360,7 +360,7 @@ class Emld():
             # If the organization publishing the DRR is *not* NPS, set org_name to your publishing organization's name.
         # @param force
             # Default False
-            # False will overwrite existing values and/or create key-value pairs if necessary
+            # True will overwrite existing values and/or create key-value pairs if necessary
             
         # @examples
             # drr_title = 'Data Release Report for Data Package 1234'
@@ -438,7 +438,7 @@ class Emld():
             # (available at https://www.loc.gov/standards/iso639-2/php/code_list.php) and inserted into the metadata.
         # @param force
             # Default False
-            # False will overwrite existing values and/or create key-value pairs if necessary
+            # True will overwrite existing values and/or create key-value pairs if necessary
         
         # @examples
             # myemld.set_language(language = 'english', force = True)
@@ -499,7 +499,7 @@ class Emld():
             # https://irmaservices.nps.gov/v2/rest/unit/
         # @param force
             # Default False
-            # False will overwrite existing values and/or create key-value pairs if necessary
+            # True will overwrite existing values and/or create key-value pairs if necessary
         # @param verbose
             # Default False
             # True prints before & after dataset content units; could be lengthy, depending how many parks are in `unit_code`
@@ -593,7 +593,7 @@ class Emld():
             # An abstract is a short summary of what is in the dataset.
         # @param force
             # Default False
-            # False will overwrite existing values and/or create key-value pairs if necessary
+            # True will overwrite existing values and/or create key-value pairs if necessary
             
         # @examples
             # my_abstract = 'This is the first sentence that describes my dataset. This is another sentence about the dataset.'
@@ -630,6 +630,142 @@ class Emld():
             print('You entered an argument of the wrong type.')
             print(t)
             print('Please check your argument for accuracy and try again.')
+            
+    def set_publisher(
+        self, 
+        org_name:str = 'NPS',
+        street_address:str = '',
+        city:str = '',
+        state:str = '',
+        zip_code:str = '',
+        country:str = '',
+        URL:str = '',
+        email = '',
+        ror_id:str = '',
+        force:bool = False
+    ):
+        
+        # @param org_name
+            # optional
+            # Default: 'NPS'
+            # The organization name that is publishing the digital product.
+        # @param street_address
+            # optional
+            # The street address where the digital product is published.
+        # @param city
+            # optional
+            # The city where the digital product is published.
+        # @param state
+            # A two-letter code for the state where the digital product is being published.
+        # @param zip_code
+            # optional
+            # The postal code for the publishers location.
+        # @param country
+            # optional
+            # The country where the digital product is being published.
+        # @param URL
+            # optional
+            # A URL for the publisher.
+        # @param email
+            # optional
+            # An email for the publisher.
+        # @param ror_id
+            # optional
+            # The Research Organization Registry (ROR) id for the publisher (see https://ror.org/ for more information).
+        # @param force
+            # Default False
+            # True will overwrite existing values and/or create key-value pairs if necessary
+            # True writes exactly the arguments provided here and will delete omitted parameters
+            # False allows a user to control what is overwritten or deleted.
+            
+        # @examples
+            # myemld.set_publisher(org_name = 'Org abc', street_address = '123 Abc street', city = 'The big apple')
+            
+        # validate user input
+        assert force in (True, False), "Parameter `force` must be either True or False."
+        # assert if state: len(state) == 2, "Enter only two-character state IDs."
+        
+        # procedure
+        try:
+            pubset = {}
+            if org_name:
+                pubset["organizationName"] = org_name
+            if street_address:
+                if 'address' not in pubset:
+                    pubset["address"] = {
+                        'deliveryPoint': street_address
+                    }
+                else:
+                    pubset["address"]["deliveryPoint"] = deliveryPoint
+            if city:
+                if 'city' not in pubset:
+                    pubset["address"] = {
+                        'city': city
+                    }
+                else:
+                    pubset["address"]["city"] = city
+            if state:
+                if 'state' not in pubset:
+                    pubset["address"] = {
+                        'administrativeArea': state
+                    }
+                else:
+                    pubset["address"]["administrativeArea"] = state
+            if zip_code:
+                if 'zip_code' not in pubset:
+                    pubset["address"] = {
+                        'postalCode': zip_code
+                    }
+                else:
+                    pubset["address"]["postalCode"] = zip_code
+                
+            if country:
+                if 'country' not in pubset:
+                    pubset["address"] = {
+                        'country': country
+                    }
+                else:
+                    pubset["address"]["country"] = country
+            if URL:
+                pubset["onlineUrl"] = URL
+            if email:
+                pubset["electronicMailAddress"] = email
+            if ror_id:
+                pubset["userID"]["directory"] = 'https://ror.org/'
+                pubset["userID"]["userId"] = ror_id
+            
+            # pubset = {
+            #     'organizationName': org_name,
+            #     'address': {
+            #         'deliveryPoint': street_address,
+            #         'city': city,
+            #         'administrativeArea': state,
+            #         'postalCode': zip_code,
+            #         'country': country
+            #     },
+            #     'onlineUrl': URL,
+            #     'electronicMailAddress': email,
+            #     'userID': {
+            #         'directory': 'https://ror.org/',
+            #         'userId': ror_id
+            #     }
+            # }
+            
+            print('----------')
+            print(json.dumps(pubset, indent=4, default=str))
+            print('----------')
+            
+            
+            ###
+            ### pick up here, start at if force == True:
+            ###
+            
+            
+        except NameError as e:
+            print(e)
+        except TypeError as t:
+            print(t)
+        
     
     def _set_version(self):
         '''Set the value of `app` and `release`.'''
@@ -647,20 +783,25 @@ class Emld():
             }
         
         # procedure
-        if "emlEditor" in self.emld["additionalMetadata"]["metadata"]: # check dict keys
-            # the R version of EMLeditor inherits the naming convention EMLassemblyline for <emlEditor> tags
-            # this is confusing because our R and py packages are called EMLeditor but EMLassemblyline is routed to the <emlEditor> tag along with EMLeditor to <emlEditor id="EMLeditor">
-            # this namespace conflict is a problem in py dict{} and R list and the R version of EMLeditor works around this by assigning
-            # un-named list elements to allow for duplicated list element names (i.e., duplicated keys in a dict).
-            # To work around this, I re-assign EMLassebmlyline's ["emlEditor"] to a key called ["emlSource"]
-            # thereby freeing up the ["emlEditor"] namespace to hold information about `EMLeditor` release versions
-            # ["emlSource"] eventually needs to become tag <emlEditor> with no id attribute
-            # ["emlEditor"] eventually needs to become tag <emlEditor id="EMLeditor">
-            self.emld['additionalMetadata']["metadata"]["emlSource"] = self.emld['additionalMetadata']["metadata"]["emlEditor"]
-            del self.emld['additionalMetadata']["metadata"]["emlEditor"] # delete to free up namespace for `_set_version()`
-        
-        self.emld["additionalMetadata"]["metadata"]["emlEditor"] = VERSION # add version info
-        print(f"")
+        try:
+            if "emlEditor" in self.emld["additionalMetadata"]["metadata"]: # check dict keys
+                # the R version of EMLeditor inherits the naming convention EMLassemblyline for <emlEditor> tags
+                # this is confusing because our R and py packages are called EMLeditor but EMLassemblyline is routed to the <emlEditor> tag along with EMLeditor to <emlEditor id="EMLeditor">
+                # this namespace conflict is a problem in py dict{} and R list and the R version of EMLeditor works around this by assigning
+                # un-named list elements to allow for duplicated list element names (i.e., duplicated keys in a dict).
+                # To work around this, I re-assign EMLassebmlyline's ["emlEditor"] to a key called ["emlSource"]
+                # thereby freeing up the ["emlEditor"] namespace to hold information about `EMLeditor` release versions
+                # ["emlSource"] eventually needs to become tag <emlEditor> with no id attribute
+                # ["emlEditor"] eventually needs to become tag <emlEditor id="EMLeditor">
+                self.emld['additionalMetadata']["metadata"]["emlSource"] = self.emld['additionalMetadata']["metadata"]["emlEditor"]
+                del self.emld['additionalMetadata']["metadata"]["emlEditor"] # delete to free up namespace for `_set_version()`
+            
+            self.emld["additionalMetadata"]["metadata"]["emlEditor"] = VERSION # add version info
+            
+        except NameError as e:
+            print(e)
+        except TypeError as t:
+            print(t)
     
     def _add_required(self):
         '''A method that enforces class Emld data requirements'''
@@ -685,10 +826,15 @@ class Emld():
         '''
         
         # procedure
-        if self.NPS == True:
-            self._set_npspublisher() # set publisher if NPS
-            self._set_for_by_nps() # set for-by if NPS
-        self._set_version() # set version regardless
+        try:
+            if self.NPS == True:
+                self._set_npspublisher() # set publisher if NPS
+                self._set_for_by_nps() # set for-by if NPS
+            self._set_version() # set version regardless
+        except NameError as e:
+            print(e)
+        except TypeError as t:
+            print(t)
         
     def write_eml(self, destination_filename:str, attr_type:bool = False):
         '''Write emld to .xml'''
@@ -712,6 +858,11 @@ class Emld():
             xmlfile = open(destination_filename, "w")
             xmlfile.write(xml_decode)
             xmlfile.close()
+        
+        except NameError as e:
+            print(e)
+        except TypeError as t:
+            print(t)
         except:
             print("Unable to write eml to xml.")
         
@@ -731,6 +882,11 @@ class Emld():
             print(parseString(xmloutput).toprettyxml())
             # eventually, update to:
             # print(xmltodict.unparse(myemld.emld["additionalMetadata"], pretty=True))
+        
+        except NameError as e:
+            print(e)
+        except TypeError as t:
+            print(t)
         except:
             print("error in printing eml")
             
