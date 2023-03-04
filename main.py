@@ -59,8 +59,16 @@ myemld.set_drr(drr_ref_id = '7777777', drr_title = 'Data Release Report for Data
 myemld.emld["dataset"]["language"]
 myemld.set_language()
 
-# test `get_content_units()`
+# test `set_content_units()`
 myemld.set_content_units('ACAD', 'GLAC', force = True, verbose = False)
+
+# test `set_abstract()`
+my_abstract = 'This is the first sentence that describes my dataset. This is another sentence about the dataset.'
+myemld.set_abstract(abstract = my_abstract, force = True)
+my_abstract2 = 'This is a different abstract'
+myemld.set_abstract(abstract = my_abstract2, force = False)
+myemld.set_abstract(abstract = my_abstract, force = True)
+
 
 # print the eml to console
 myemld.print_eml()

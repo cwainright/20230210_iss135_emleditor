@@ -512,8 +512,10 @@ class Emld():
         #     print(f'User entered code: {code} with length {len(code)}.')
         
         # # validate user input
+        assert force in (True, False), "Parameter `force` must be either True or False."
+        assert verbose in (True, False), "Parameter `verbose` must be either True or False."
         for code in unit_code:
-            assert len(str(code)) == 4, print(f'Unit code {str(code)} is not four characters in length.')
+            assert len(str(code)) == 4, print(f'Unit code {str(code)} is not four characters in length. Review for accuracy and try again.')
 
         # procedure
         # An API call to NPS Rest Services to get
@@ -583,9 +585,51 @@ class Emld():
             print(t)
             print('Please check your unit codes for accuracy and try again.')
             
+    def set_abstract(self, abstract:str, force:bool = False):
+        '''Set the dataset's abstract.'''
         
+        # @param abstract
+            # One or more sentences summarizing what is in the dataset.
+            # An abstract is a short summary of what is in the dataset.
+        # @param force
+            # Default False
+            # False will overwrite existing values and/or create key-value pairs if necessary
+            
+        # @examples
+            # my_abstract = 'This is the first sentence that describes my dataset. This is another sentence about the dataset.'
+            # myemld.set_abstract(abstract = myabstract, force = True)
+            
+        # validate user input
+        assert force in (True, False), "Parameter `force` must be either True or False."
         
-        
+        # procedure
+        try:
+            if force == True:
+                self.emld["dataset"]["abstract"] = abstract
+                print(f'Your abstract was updated to:')
+                print('----------')
+                print(f'{abstract}')
+                print('----------')
+            else:
+                if 'abstract' in self.emld["dataset"]:
+                            print(f'The dataset\'s abstract is currently \'{self.emld["dataset"]["abstract"]}\'')
+                            user_choice = input(f"The dataset\'s abstract is currently '{self.emld['dataset']['abstract']}\nDo you want to overwrite the dataset's current abstract?\n'y' then enter to overwrite or 'n' then enter to keep original doi\n\n")
+                            if user_choice != 'y':
+                                print(f'User input: {user_choice}')
+                                print(f'You chose to keep the dataset\'s original abstract: \'{self.emld["dataset"]["abstract"]}\'')
+                            else:
+                                print(f'User input: {user_choice}')
+                                self.emld["dataset"]["abstract"] = abstract
+                                print(f'You overwrote the data package\'s abstract to: \'{self.emld["dataset"]["abstract"]}\'!')
+                    
+        except NameError as e:
+            print('An error prevented your abstract from processing.')
+            print(e)
+            print('Please check your argument for accuracy and try again.')
+        except TypeError as t:
+            print('You entered an argument of the wrong type.')
+            print(t)
+            print('Please check your argument for accuracy and try again.')
     
     def _set_version(self):
         '''Set the value of `app` and `release`.'''
