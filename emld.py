@@ -124,7 +124,7 @@ class Emld():
             # False prints the value of <metadata><CUI> to console and asks the user to decide to over-write or not
         # @param verbose
             # Default False
-            # True pretty-prints metadata xml to console
+            # True pretty-prints metadata dict to console
 
         # saving in case I need to pivot to xml instead of dict
         # https://www.geeksforgeeks.org/turning-a-dictionary-into-xml-in-python/
@@ -141,16 +141,15 @@ class Emld():
                 print(f"Value of `CUI` set to '{cui_code}'!")
             else:
                 if 'CUI' in self.emld["additionalMetadata"]["metadata"]:
-                    if verbose == False:
-                        print(f'Your metadata has a `CUI` value of \'{self.emld["additionalMetadata"]["metadata"]["CUI"]}\'')
-                        user_choice = input("Do you want to overwrite your original title?\n'y' then enter to overwrite or 'n' then enter to keep original title\n\n")
-                        if user_choice == 'y':
-                            print(f'User input: {user_choice}')
-                            self.emld["additionalMetadata"]["metadata"]["CUI"] = cui_code
-                            print(f"You overwrote the dataset's `CUI` to '{data_package_title}'!")
-                        else:
-                            print(f'User input: {user_choice}')
-                            print(f'`CUI` update cancelled. Your dataset kept its original `CUI`: \'{self.emld["additionalMetadata"]["metadata"]["CUI"]}\'')
+                    print(f'Your metadata has a `CUI` value of \'{self.emld["additionalMetadata"]["metadata"]["CUI"]}\'')
+                    user_choice = input("Do you want to overwrite your original title?\n'y' then enter to overwrite or 'n' then enter to keep original title\n\n")
+                    if user_choice == 'y':
+                        print(f'User input: {user_choice}')
+                        self.emld["additionalMetadata"]["metadata"]["CUI"] = cui_code
+                        print(f"You overwrote the dataset's `CUI` to '{data_package_title}'!")
+                    else:
+                        print(f'User input: {user_choice}')
+                        print(f'`CUI` update cancelled. Your dataset kept its original `CUI`: \'{self.emld["additionalMetadata"]["metadata"]["CUI"]}\'')
             if verbose == True:
                 print('CUI metadata:')
                 # print('----------')
@@ -488,6 +487,9 @@ class Emld():
         # @param force
             # Default False
             # True will overwrite existing values and/or create key-value pairs if necessary
+        # @param verbose
+            # Default False
+            # True pretty-prints metadata dict to console
         
         # @examples
             # myemld.set_language(language = 'english', force = True)
@@ -692,7 +694,8 @@ class Emld():
         URL:str = '',
         email = '',
         ror_id:str = '',
-        force:bool = False
+        force:bool = False,
+        verbose:bool = False
     ):
         
         # @param org_name
@@ -727,12 +730,16 @@ class Emld():
             # True will overwrite existing values and/or create key-value pairs if necessary
             # True writes exactly the arguments provided here and will delete omitted parameters
             # False allows a user to control what is overwritten or deleted.
+        # @param verbose
+            # Default False
+            # True pretty-prints metadata dict to console
             
         # @examples
             # myemld.set_publisher(org_name = 'Org abc', street_address = '123 Abc street', city = 'The big apple')
             
         # validate user input
         assert force in (True, False), "Parameter `force` must be either True or False."
+        assert verbose in (True, False), "Parameter `verbose` must be either True or False."
         # assert if state: len(state) == 2, "Enter only two-character state IDs."
         
         # procedure
@@ -809,7 +816,30 @@ class Emld():
             ###
             ### pick up here, start at if force == True:
             ###
-            
+            if force == True:
+                self.emld["dataset"]["publisher"] = pubset
+                print('Dataset publisher information set!')
+            else:
+                if 'publisher' in self.emld["dataset"]:
+                    print(f'Your metadata currently has `publisher` metadata:')
+                    print('----------')
+                    print(json.dumps(self.emld["dataset"]["publisher"], indent=4, default=str))
+                    print('----------')
+                    user_choice = input("Do you want to overwrite your publisher metadata?\n'y' then enter to overwrite or 'n' then enter to keep original\n\n")
+                    if user_choice == 'y':
+                        print(f'User input: {user_choice}')
+                        self.emld["dataset"]["publisher"] = pubset
+                        print('Dataset publisher information set!')
+                    else:
+                        print(f'User input: {user_choice}')
+                        print(f'`publisher` update cancelled. Your dataset kept its original `publisher` metadata.')
+            if verbose == True:
+                print('\nDataset publisher information:')
+                print('----------')
+                print(json.dumps(pubset, indent=4, default=str))
+                print('----------')
+            else:
+                pass
             
         except NameError as e:
             print(e)

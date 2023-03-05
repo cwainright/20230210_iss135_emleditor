@@ -70,7 +70,7 @@ myemld.set_abstract(abstract = my_abstract2, force = False)
 myemld.set_abstract(abstract = my_abstract, force = True)
 
 # test `set_publisher()`
-myemld.set_publisher(street_address = '123 Abc street', city = 'The big apple')
+myemld.set_publisher(street_address = '123 Abc street', city = 'The big apple', force = True)
 
 # test
 
