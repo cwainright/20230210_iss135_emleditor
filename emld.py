@@ -21,12 +21,12 @@ CUI_CHOICES = {
     'FEDCON': 'Contains CUI. Only federal employees and federal contractors should have access (also very much like current "internal only" setting in DataStore)',
     'FED_ONLY': 'Contains CUI. Only federal employees should have access (similar to "internal only" in DataStore)'
 }
-INT_RIGHTS_CHOICES = ('CC0', 'public', 'restricted')
+INT_RIGHTS_CHOICES = ('CCzero', 'public_domain', 'restrict')
 CURRENT_RELEASE = '0.0.1'
 APP_NAME = "pyEML"
 LICENSE_TEXT = {
                     'CCzero': 'This product is released to the "public domain" under Creative Commons CC0 1.0 No Rights Reserved (see: https://creativecommons.org/publicdomain/zero/1.0/).',
-                    'pub_domain': 'This product is released to the "public domain" under U.S. Government Works No Rights Reserved (see: http://www.usa.gov/publicdomain/label/1.0/).',
+                    'public_domain': 'This product is released to the "public domain" under U.S. Government Works No Rights Reserved (see: http://www.usa.gov/publicdomain/label/1.0/).',
                     'restrict': 'This product has been determined to contain Controlled Unclassified Information (CUI) by the National Park Service, and is intended for internal use only. It is not published under an open license. Unauthorized access, use, and distribution are prohibited.'
         }
 NPS_DOI_ADDRESS = 'https://doi.org/10.57830/'
@@ -42,9 +42,10 @@ class Emld():
         # @param NPS
             # default True
             # True indicates NPS is the author of this EML [meta]data package
-            # True executes two private methods during the `_add_required()` call:
+            # True executes private methods during the `_add_required()` call:
                 # 1. `_set_by_for_nps()`
                 # 2 `_set_npspublisher()`
+                # 3 `_set_version()`
             
         # validate user input
         assert filepath != "", "File cannot be blank"
@@ -109,7 +110,7 @@ class Emld():
         except:
             print("An error occurred and your Emld did not instantiate.")
             
-    def set_cui(self, cui_code:str = CUI_CHOICES, force:bool = False):
+    def set_cui(self, cui_code:str = CUI_CHOICES, force:bool = False, verbose = False):
         '''Set the data package's controlled unclassified information (CUI) status'''
         # @param cui_code a string consisting of one of 7 potential CUI codes (defaults to "PUBFUL").
             # FED_ONLY - Contains CUI. Only federal employees should have access (similar to "internal only" in DataStore)
@@ -121,6 +122,9 @@ class Emld():
             # Default False
             # True means the program will over-write any value in <metadata><CUI> if one exists or create that tag and add `cui_code` if !exists
             # False prints the value of <metadata><CUI> to console and asks the user to decide to over-write or not
+        # @param verbose
+            # Default False
+            # True pretty-prints metadata xml to console
 
         # saving in case I need to pivot to xml instead of dict
         # https://www.geeksforgeeks.org/turning-a-dictionary-into-xml-in-python/
@@ -136,9 +140,35 @@ class Emld():
                 self.emld["additionalMetadata"]["metadata"]["CUI"] = cui_code   # set the value of <metadata><CUI>
                 print(f"Value of `CUI` set to '{cui_code}'!")
             else:
+                if 'CUI' in self.emld["additionalMetadata"]["metadata"]:
+                    if verbose == False:
+                        print(f'Your metadata has a `CUI` value of \'{self.emld["additionalMetadata"]["metadata"]["CUI"]}\'')
+                        user_choice = input("Do you want to overwrite your original title?\n'y' then enter to overwrite or 'n' then enter to keep original title\n\n")
+                        if user_choice == 'y':
+                            print(f'User input: {user_choice}')
+                            self.emld["additionalMetadata"]["metadata"]["CUI"] = cui_code
+                            print(f"You overwrote the dataset's `CUI` to '{data_package_title}'!")
+                        else:
+                            print(f'User input: {user_choice}')
+                            print(f'`CUI` update cancelled. Your dataset kept its original `CUI`: \'{self.emld["additionalMetadata"]["metadata"]["CUI"]}\'')
+            if verbose == True:
+                print('CUI metadata:')
+                # print('----------')
+                # print(xmltodict.unparse(self.emld["additionalMetadata"], pretty=True)) # test that the method worked
+                # print('----------')
+                print('----------')
+                print(json.dumps(self.emld["additionalMetadata"], indent=4, default=str))
+                print('----------')
+            else:
                 pass
-        except:
-            print("CUI did not update.")
+        except NameError as e:
+            print('An error prevented your `CUI` update from processing.')
+            print(e)
+            print('Please check your parameters for accuracy and try again.')
+        except TypeError as t:
+            print('You entered a parameter of the wrong type.')
+            print(t)
+            print('Please check your parameters for accuracy and try again.')
             
     def describe_cui(self):
         '''Print the `CUI` (controlled unclassified information) choices to console'''
@@ -172,27 +202,34 @@ class Emld():
                 if self.emld["dataset"]["title"] != None:
                     print(f'Your dataset already has a title: {self.emld["dataset"]["title"]}')
                     user_choice = input("Do you want to overwrite your original title?\n'y' then enter to overwrite or 'n' then enter to keep original title\n\n")
-                    if user_choice != 'y':
-                        pass
-                    else:
+                    if user_choice == 'y':
+                        print(f'User input: {user_choice}')
                         self.emld["dataset"]["title"] = data_package_title
                         print(f"You overwrote your original data package title to '{data_package_title}'!")
+                    else:
+                        print(f'User input: {user_choice}')
+                        print(f'Title update cancelled. Your dataset kept its original title: \'{self.emld["dataset"]["title"]}\'')
         except:
             print("Title did not update.")
         
     def set_int_rights(self, license:str = INT_RIGHTS_CHOICES, force:bool = False):
         '''Set the intellectual property rights of the data package'''
+        
         # @param license str
             # The intellectual rights the user wants to set for their data package
-            # e.g., license = "public"
         # @param force bool
             # Default False
             # True means the program will over-write any value in ["dataset"]["intellectualRights"] if one exists or create add value if !exists
             # False prints the value of ["dataset"]["intellectualRights"] to console and asks the user to decide to over-write or not
+            
+        # @examples
+            # myemld.set_cui(cui_code="PUBLIC", force = True)
+            # myemld.set_int_rights(license = "CCzero", force = True)
+            
         
         # validate user input
         assert license != "", "Parameter `license` cannot be blank"
-        assert license in INT_RIGHTS_CHOICES
+        assert license in INT_RIGHTS_CHOICES, '`license` must come from INT_RIGHTS_CHOICES.\nRun `describe_int_rights()` (e.g., myemld.decribe_int_rights()) to review choices.'
         assert force in (True, False), "Parameter `force` must be either True or False."
 
         # procedure
@@ -201,25 +238,38 @@ class Emld():
                 print("This data package's controlled unclassified information status, `CUI`, must be set before setting the package's intellectual property rights.\n")
                 print("First, use the `set_cui()` method to set your dataset's `CUI`.")
                 print("Then, re-try the `set_int_rights()` method to set your dataset's intellectual property rights.")
-                pass
             else:
                 print(f'`CUI` value in data package was: \'{self.emld["additionalMetadata"]["metadata"]["CUI"]}\'.\n')
                 if self.emld["additionalMetadata"]["metadata"]["CUI"] == 'PUBLIC': # Public CUI has two acceptable license choices: 'CC0' and 'pub_domain'
-                    if license == 'CC0':
+                    if license == 'CCzero':
                         self.emld["dataset"]["intellectualRights"] = LICENSE_TEXT["CCzero"]
-                        print(f'Data package `intellectual rights` set to {license}!')
-                    elif license == 'public':
+                        print(f'Data package `intellectual rights` set to \'{license}\'!')
+                        print(f'Value stored in dataset:')
+                        print('----------')
+                        print(f'{self.emld["dataset"]["intellectualRights"]}')
+                        print('----------')
+                    elif license == 'public_domain':
                         self.emld["dataset"]["intellectualRights"] = LICENSE_TEXT["pub_domain"]
-                        print(f'Data package `intellectual rights` set to {license}!')
+                        print(f'Data package `intellectual rights` set to \'{license}\'!')
+                        print(f'Value stored in dataset:')
+                        print('----------')
+                        print(f'{self.emld["dataset"]["intellectualRights"]}')
+                        print('----------')
                     else:
+                        print('got inside public')
                         print(f'Assigning \'{license}\' as your data package\'s intellectual rights will contradict your data package\'s controlled unclassified information `CUI` status of {self.emld["additionalMetadata"]["metadata"]["CUI"]}.\n')
                         print('To resolve this conflict, you must make your data package\'s `CUI` and `intellectual_rights` agree.\n')
                         print('If you really want to restrict intellectual rights on your data package, use the `set_cui()` method to set `CUI` to "NOCON", "DL_ONLY", "FEDCON", or "FED_ONLY" and then re-try `set_int_rights()`.')
                         print('If your dataset will be published to the public, its intellectual rights must be public-facing (i.e., \'CCO\' or \'public\').')
                 else:
+                    print('didnt go public')
                     if licence == 'restrict':
                         self.emld["dataset"]["intellectualRights"] = LICENSE_TEXT["restrict"]
-                        print(f'Data package `intellectual rights` set to {license}!')
+                        print(f'Data package `intellectual rights` set to \'{license}\'!')
+                        print(f'Value stored in dataset:')
+                        print('----------')
+                        print(f'{self.emld["dataset"]["intellectualRights"]}')
+                        print('----------')
                     else:
                         print(f'Assigning \'{license}\' as your data package\'s intellectual rights will contradict your data package\'s controlled unclassified information `CUI` status of {self.emld["additionalMetadata"]["metadata"]["CUI"]}.')
                         print('To resolve this conflict, you must make your data package\'s `CUI` and `intellectual_rights` agree.\n')
@@ -426,9 +476,8 @@ class Emld():
         except:
             print("Unable to update dataset DRR.")
             print("Check the parameters provided to `set_drr()` for accuracy.")
-            pass
         
-    def set_language(self, language:str = 'English', force:bool = False):
+    def set_language(self, language:str = 'English', force:bool = False, verbose = True):
         '''Specify the language that the data package was constructed in.'''
         
         # @param language
@@ -447,6 +496,7 @@ class Emld():
             
         # validate user input
         assert force in (True, False), "Parameter `force` must be either True or False."
+        assert verbose in (True, False), "Parameter `verbose` must be either True or False."
         
         # procedure
         language_title = language.title() # enforce ISO capitalization
@@ -698,21 +748,21 @@ class Emld():
                 else:
                     pubset["address"]["deliveryPoint"] = deliveryPoint
             if city:
-                if 'city' not in pubset:
+                if 'address' not in pubset:
                     pubset["address"] = {
                         'city': city
                     }
                 else:
                     pubset["address"]["city"] = city
             if state:
-                if 'state' not in pubset:
+                if 'address' not in pubset:
                     pubset["address"] = {
                         'administrativeArea': state
                     }
                 else:
                     pubset["address"]["administrativeArea"] = state
             if zip_code:
-                if 'zip_code' not in pubset:
+                if 'address' not in pubset:
                     pubset["address"] = {
                         'postalCode': zip_code
                     }
@@ -720,7 +770,7 @@ class Emld():
                     pubset["address"]["postalCode"] = zip_code
                 
             if country:
-                if 'country' not in pubset:
+                if 'address' not in pubset:
                     pubset["address"] = {
                         'country': country
                     }

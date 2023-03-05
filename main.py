@@ -8,8 +8,6 @@ from xml.dom.minidom import parseString
 import iso639
 import urllib
 importlib.reload(emld)
-myemld = emld.Emld(filepath = myfile, NPS = True)
-myemld.set_publisher(org_name = 'mytestorg', street_address = 'The big apple', URL = "a test url", zip_code = '123123')
 
 '''
 A mock workflow to test pyEML
@@ -23,8 +21,7 @@ myemld.describe_int_rights()
 myemld.describe_cui()
 
 # test `set_CUI()` (controlled unclassified information) attribute and value
-myemld.set_cui(cui_code="PUBLIC", force = True)
-print(xmltodict.unparse(myemld.emld["additionalMetadata"], pretty=True)) # test that the method worked
+myemld.set_cui(cui_code="PUBLIC", force = True, verbose = True)
 
 # test `set_title()` set dataset title value
 myemld.emld["dataset"]["title"]
@@ -33,6 +30,7 @@ myemld.emld["dataset"]["title"]
 
 # test `set_int_rights()` to set intellectual rights
 myemld.set_int_rights(license = "CCzero", force = True)
+myemld.set_int_rights(license = "CCzero", force = True, verbose = True)
 myemld.set_int_rights(license = "pub_domain", force = True)
 myemld.set_int_rights(license = "restrict", force = False)
 myemld.set_int_rights(license = "restrict", force = True)
@@ -59,10 +57,10 @@ myemld.set_drr(drr_ref_id = '7777777', drr_title = 'Data Release Report for Data
 
 # test `set_language()`
 myemld.emld["dataset"]["language"]
-myemld.set_language()
+myemld.set_language(language = 'english', force = True, verbose = True)
 
 # test `set_content_units()`
-myemld.set_content_units('ACAD', 'GLAC', force = True, verbose = False)
+myemld.set_content_units('ACAD', 'GLAC', force = True, verbose = True)
 
 # test `set_abstract()`
 my_abstract = 'This is the first sentence that describes my dataset. This is another sentence about the dataset.'
@@ -72,8 +70,11 @@ myemld.set_abstract(abstract = my_abstract2, force = False)
 myemld.set_abstract(abstract = my_abstract, force = True)
 
 # test `set_publisher()`
-myemld.emld[]
 myemld.set_publisher(street_address = '123 Abc street', city = 'The big apple')
+
+# test
+
+# test
 
 # print the eml to console
 myemld.print_eml()
