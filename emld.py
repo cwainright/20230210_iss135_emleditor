@@ -9,6 +9,8 @@ import json
 import iso639
 import urllib
 import pandas as pd
+import sys
+import gc
 
 # GLOBAL CONSTANTS
 # definied outside a class instance to be available to all methods but invisible to the user
@@ -894,45 +896,156 @@ class Emld():
             assert len(str(unit)) == 4, print(f'Unit code \'{str(unit)}\' is not four characters in length. Review for accuracy and try again.')
         
         # procedure
-        if force == True:
-            self.emld["dataset"]["metadataProvider"] = {
-                'organizationName': list(prod_units)
-            }
-            if len(list(prod_units)) ==1:
-                print('Dataset metadata producing unit updated!')
-            if len(list(prod_units)) >1:
-                print('Dataset metadata producing units updated!')
-        else:
-            if 'metadataProvider' in self.emld["dataset"]:
-                print(f'Your metadata currently has `producing unit` metadata:')
+        try:
+            if force == True:
+                self.emld["dataset"]["metadataProvider"] = {
+                    'organizationName': list(prod_units)
+                }
+                if len(list(prod_units)) ==1:
+                    print('Dataset metadata producing unit updated!')
+                if len(list(prod_units)) >1:
+                    print('Dataset metadata producing units updated!')
+            else:
+                if 'metadataProvider' in self.emld["dataset"]:
+                    print(f'Your metadata currently has `producing unit` metadata:')
+                    print('----------')
+                    print(json.dumps(self.emld["dataset"]["metadataProvider"], indent=4, default=str))
+                    print('----------')
+                    user_choice = input("Do you want to overwrite your producing unit metadata?\n'y' then enter to overwrite or 'n' then enter to keep original\n\n")
+                    if user_choice == 'y':
+                        print(f'User input: {user_choice}')
+                        self.emld["dataset"]["metadataProvider"] = {
+                            'organizationName': list(prod_units)
+                        }
+                        print('Dataset producing unit information set!')
+                    else:
+                        print(f'User input: {user_choice}')
+                        print(f'`producing unit` update cancelled. Your dataset kept its original metadata.')
+            if verbose == True:
+                print('\nDataset metadata producing unit information:')
                 print('----------')
                 print(json.dumps(self.emld["dataset"]["metadataProvider"], indent=4, default=str))
                 print('----------')
-                user_choice = input("Do you want to overwrite your producing unit metadata?\n'y' then enter to overwrite or 'n' then enter to keep original\n\n")
-                if user_choice == 'y':
-                    print(f'User input: {user_choice}')
-                    self.emld["dataset"]["metadataProvider"] = {
-                        'organizationName': list(prod_units)
-                    }
-                    print('Dataset producing unit information set!')
-                else:
-                    print(f'User input: {user_choice}')
-                    print(f'`producing unit` update cancelled. Your dataset kept its original metadata.')
+            else:
+                pass
+        
+        except NameError as e:
+            print(e)
+        except TypeError as t:
+            print(t)
+        
+    def write_readme(self, out_file:str = '', verbose:bool = False):
+        '''Generate readme txt file from emld object and write readme to file'''
+        
+        # @param out_file
+            # optional
+            # the file name and file path of the readme to save, typically *.txt.
+        # @param verbose
+            # Default False
+            # True pretty-prints readme dict to console
+            
+        # @examples
+            # myemld.write_readme(out_file = 'my_directory/my_readme.txt') # saves readme to file
+            # myemld.write_readme() # prints readme to console
+            
+        # validate user input
+        # no validation step 
+        
+        # procedure
+        
+        
+        # procedure
+        '''Get the file info'''
+        my_object = {}
+        # `get_ds_id()`: Get the datastore ref ID from an emld object. line 40 https://github.com/nationalparkservice/EMLeditor/blob/main/R/check_eml.R
+        # `get_doi()`: get the DOI line 41 https://github.com/nationalparkservice/EMLeditor/blob/main/R/check_eml.R
+        # both point at ml_object$dataset$alternateIdentifier. redundant. see line 131 and 301 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
+        if 'alternateIdentifier' in self.emld["dataset"]:
+            my_object["ref"] = self.emld["dataset"]["alternateIdentifier"]
+        elif verbose = True:
+            print('Your dataset does not have a DataStore reference ID (i.e. DOI). Use `set_doi()` to resolve this problem.')
+        if 'title' in self.emld:
+            my_object["title"] = self.emld["title"]
+        elif verbose = True:
+            print('Your dataset does not have a title. Use `set_doi()` to resolve this problem.')
+        
+        
+        if 'objectName' in self.emld:
+            my_object['object_name'] = self.emld["objectName"] # equivalent to `arcticdatautils::eml_get_simple(eml_object, "objectName")` line 428 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
+            if 'size' in self.emld["objectName"]:
+                try:
+                    my_object['size'] = str(self.emld["objectName"]["size"]) + ' bytes' # equivalent to `arcticdatautils::eml_get_simple(eml_object, "size")` # line 435 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
+                except NameError as e:
+                    print(e)
+                except TypeError as t:
+                    print(t)
+        else:
+            # even if there isn't a user-provided size, the object will always have a size in computer memory
+            my_object['size'] = str(self._get_size()) + ' bytes' # extract size
+        if 'entityDescription' in self.emld:
+           my_object['file_description'] = self.emld["file_description"] # equivalent to `arcticdatautils::eml_get_simple(eml_object, "entityDescription")` line 443 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
         if verbose == True:
-            print('\nDataset metadata producing unit information:')
-            print('----------')
-            print(json.dumps(self.emld["dataset"]["metadataProvider"], indent=4, default=str))
-            print('----------')
+            print('You have not specified data file names, sizes, or descripions.')
+            print('If you used EMLassemblyline, double check for any issues generated after running make_eml.')
+            print('Missing data and undifined units will often cause this problem.')
         else:
             pass
+        print(json.dumps(my_object, indent = 4))
         
-    def write_readme(
-        self
-    ):
-        pass
+        # readme_holder = {}
+        # if ref:
+        #     readme_holder['ref'] = 'ReadMe file for DataStore reference# ' + str(ref) + '\n'
+        # if doi:
+        #     readme_holder['doi'] = 'Digital Object Identifier (DOI): ' + str(doi) + '\n'
+        # if title:
+        #     readme_holder['title'] = 'Title:\n' + str(title) + '\n'
+        # if abstract:
+        #     readme_holder['abstract'] = 'Abstract:\n' + str(abstract) + '\n'
+        # if file_info:
+        #     readme_holder['file_info'] = 'Files: ' + file_info  + '\n'
+        # if start_date:
+        #     readme_holder['start_date'] = start_date
+        # if end_date:
+        #     readme_holder['end_date'] = end_date
+        # if units:
+        #     readme_holder['units'] = units
+        # if pkg_cui:
+        #     readme_holder['pkg_cui'] = pkg_cui
+        # if drr_doi:
+        #     readme_holder['drr_doi'] = drr_doi
+        # if citation:
+        #     readme_holder['citation'] = citation
+        # 
+        # try:
+        #     if out_file == '':
+        #         print('No `out_file` specified. Printing readme to console for review...')
+        #     elif not out_file.lower().endswith('.txt'):
+        #         print('The `out_file` you provided did not end in \'.txt\'.')
+        #         print(f'User `out_file`: {out_file}')
+        # except NameError as e:
+        #     print(e)
+        # except TypeError as t:
+        #     print(t)
     
     def check_eml(self):
         pass
+    
+    def _get_size(self):
+        '''Sum size of object & members.'''
+        # adapted from: https://stackoverflow.com/questions/449560/how-do-i-determine-the-size-of-an-object-in-python
+            
+        seen_ids = set()
+        size = 0
+        objects = [self.emld]
+        while objects:
+            need_referents = []
+            for obj in objects:
+                if id(obj) not in seen_ids:
+                    seen_ids.add(id(obj))
+                    size += sys.getsizeof(obj)
+                    need_referents.append(obj)
+            objects = gc.get_referents(*need_referents)
+        return size
     
     def _set_version(self):
         '''Set the value of `app` and `release`.'''
@@ -1014,8 +1127,8 @@ class Emld():
             # False omits the attribute tag like this: <mytag>
             
         # validate user input
-        assert destination_filename != "", "File cannot be blank"
-        assert destination_filename.lower().endswith(".xml"), "File must end with '.xml'"
+        assert destination_filename != "", "`destination_filename` cannot be blank"
+        assert destination_filename.lower().endswith(".xml"), "`destination_filename` must end with '.xml'"
         assert attr_type in (True, False), "Parameter `attr_type` must be either True or False."
         
         # procedure

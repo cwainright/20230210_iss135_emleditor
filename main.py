@@ -76,7 +76,11 @@ myemld.set_publisher(street_address = '123 Abc street', city = 'The big apple', 
 myemld.set_producing_units('GLAC', 'ACAD', force = True, verbose = True)
 myemld.set_producing_units('REDG', 'ACAD', force = False, verbose = True)
 
-# test
+# test `write_readme()`
+myemld._get_size()
+myemld.write_readme(verbose = True)
+myemld._get_size()
+
 
 # print the eml to console
 myemld.print_eml()
