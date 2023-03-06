@@ -81,6 +81,37 @@ myemld._get_size()
 myemld.write_readme(verbose = True)
 myemld._get_size()
 
+# test `get_file_info()`
+myemld.get_file_info(verbose = True)
+
+# test `get_ds_id()`
+myemld.get_ds_id()
+
+# test `get_doi()`
+myemld.get_doi()
+
+# test `get_abstract()`
+myemld.get_abstract()
+
+# test `get_end_date()`
+myemld.get_end_date()
+del myemld.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]["endDate"]
+myemld.get_end_date()
+
+# test `get_begin_date()`
+myemld.get_begin_date()
+del myemld.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]["beginDate"]
+myemld.get_begin_date()
+
+# test `set_end_date()`
+myemld.set_end_date(date_string = '2020-14-01', force = True, verbose = True) # should error
+myemld.set_end_date(date_string = '2020-11-01', force = True, verbose = True)
+myemld.get_end_date()
+
+# test `set_begin_date()`
+myemld.set_begin_date(date_string = '2020-14-01', force = True, verbose = True) # should error
+myemld.set_begin_date(date_string = '2020-12-01', force = True, verbose = True)
+myemld.get_begin_date()
 
 # print the eml to console
 myemld.print_eml()

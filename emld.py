@@ -11,6 +11,7 @@ import urllib
 import pandas as pd
 import sys
 import gc
+import datetime
 
 # GLOBAL CONSTANTS
 # definied outside a class instance to be available to all methods but invisible to the user
@@ -694,7 +695,7 @@ class Emld():
             else:
                 if 'abstract' in self.emld["dataset"]:
                             print(f'The dataset\'s abstract is currently \'{self.emld["dataset"]["abstract"]["para"]}\'')
-                            user_choice = input(f"The dataset\'s abstract is currently '{self.emld['dataset']['abstract']]['para']}\nDo you want to overwrite the dataset's current abstract?\n'y' then enter to overwrite or 'n' then enter to keep original doi\n\n")
+                            user_choice = input(f"The dataset\'s abstract is currently '{self.emld['dataset']['abstract']['para']}\nDo you want to overwrite the dataset's current abstract?\n'y' then enter to overwrite or 'n' then enter to keep original doi\n\n")
                             if user_choice != 'y':
                                 print(f'User input: {user_choice}')
                                 print(f'You chose to keep the dataset\'s original abstract: \'{self.emld["dataset"]["abstract"]["para"]}\'')
@@ -934,6 +935,223 @@ class Emld():
         except TypeError as t:
             print(t)
         
+    def set_begin_date(self, date_string:str, force:bool = False, verbose:bool = False):
+        '''Set the dataset begin date.'''
+        
+        # @param date_string
+            # character string date formatted as 'YYYY-MM-DD'
+        # @param force
+            # Default False
+            # True will overwrite existing values and/or create key-value pairs if necessary
+            # True writes exactly the arguments provided here and will delete omitted parameters
+            # False allows a user to control what is overwritten or deleted.
+        # @param verbose
+            # Default False
+            # True pretty-prints dict to console
+            
+        # @examples
+            # myemld.set_begin_date(date_string = '2020-11-01', force = True, verbose = True)
+            
+        try:
+            datetime.date.fromisoformat(date_string)
+        except ValueError:
+            raise ValueError("Incorrect data format, should be 'YYYY-MM-DD'")
+        try:
+            if force == True:
+                if 'coverage' not in self.emld["dataset"]:
+                    print(f'Begin date updated: {date_string}')
+                    self.emld["dataset"]["coverage"] = {
+                        'temporalCoverage': {
+                            'rangeOfDates': {
+                                'beginDate': {
+                                    'calendarDate': date_string
+                                },
+                                'endDate': {
+                                    'calendarDate': None
+                                }
+                            }
+                        }
+                    }
+                    msg = 'Warning: Your dataset does not have an end date. Use `set_end_date()` to resolve this problem.'
+                    if verbose == False:
+                        print(msg)
+                if 'temporalCoverage' not in self.emld["dataset"]["coverage"]:
+                    print(f'Begin date updated: {date_string}')
+                    self.emld["dataset"]["coverage"]["temporalCoverage"] = {
+                        'rangeOfDates': {
+                            'beginDate': {
+                                'calendarDate': date_string
+                            },
+                            'endDate': {
+                                'calendarDate': None
+                            }
+                        }
+                    }
+                    msg = 'Warning: Your dataset does not have an end date. Use `set_end_date()` to resolve this problem.'
+                    if verbose == False:
+                        print(msg)
+                if 'rangeOfDates' not in self.emld["dataset"]["coverage"]["temporalCoverage"]:
+                    print(f'Begin date updated: {date_string}')
+                    self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"] = {
+                        'beginDate': {
+                            'calendarDate': date_string
+                            },
+                        'endDate': {
+                            'calendarDate': None
+                        }
+                    }
+                    msg = 'Warning: Your dataset does not have an end date. Use `set_end_date()` to resolve this problem.'
+                    if verbose == False:
+                        print(msg)
+                if 'beginDate' not in self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]:
+                    print(f'Begin date updated: {date_string}')
+                    self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]["beginDate"] = {
+                        "calendarDate": date_string
+                    }
+                    if 'calendarDate' not in self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]["endDate"]:
+                        # print('got here')
+                        msg = 'Warning: Your dataset does not have an end date. Use `set_end_date()` to resolve this problem.'
+                        if verbose == False:
+                            if msg:
+                                print(msg)
+            if force == False:
+                if 'beginDate' in self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]:
+                    print(f'Your metadata currently has `begin_date` metadata:')
+                    print('----------')
+                    print(json.dumps(self.emld["dataset"]["coverage"]["temporalCoverage"], indent=4, default=str))
+                    print('----------')
+                    user_choice = input("Do you want to overwrite your date metadata?\n'y' then enter to overwrite or 'n' then enter to keep original\n\n")
+                    if user_choice == 'y':
+                        print(f'User input: {user_choice}')
+                        self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]["beginDate"]["calendarDate"] = date_string
+                        print('Dataset end date set!')
+                    else:
+                        print(f'User input: {user_choice}')
+                        print(f'`begin_date` update cancelled. Your dataset kept its original metadata.')
+            # self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]["beginDate"]["calendarDate"] = date_string
+            if verbose == True:
+                print('----------')
+                print(json.dumps(self.emld["dataset"]["coverage"]["temporalCoverage"], indent = 4))
+                print('----------')
+                try:
+                    print(msg)
+                except:
+                    pass
+        except NameError as e:
+            print(e)
+        except TypeError as t:
+            print(t)
+        
+    def set_end_date(self, date_string:str, force:bool = False, verbose:bool = False):
+        '''Set the dataset end date.'''
+        
+        # @param date_string
+            # character string date formatted as 'YYYY-MM-DD'
+        # @param force
+            # Default False
+            # True will overwrite existing values and/or create key-value pairs if necessary
+            # True writes exactly the arguments provided here and will delete omitted parameters
+            # False allows a user to control what is overwritten or deleted.
+        # @param verbose
+            # Default False
+            # True pretty-prints dict to console
+            
+        # @examples
+            # myemld.set_end_date(date_string = '2020-11-01', force = True, verbose = True)
+            
+        try:
+            datetime.date.fromisoformat(date_string)
+        except ValueError:
+            raise ValueError("Incorrect data format, should be 'YYYY-MM-DD'")
+        try:
+            if force == True:
+                if 'coverage' not in self.emld["dataset"]:
+                    print(f'Begin date updated: {date_string}')
+                    self.emld["dataset"]["coverage"] = {
+                        'temporalCoverage': {
+                            'rangeOfDates': {
+                                'beginDate': {
+                                    'calendarDate': None
+                                },
+                                'endDate': {
+                                    'calendarDate': date_string
+                                }
+                            }
+                        }
+                    }
+                    msg = 'Warning: Your dataset does not have a beginning date. Use `set_begin_date()` to resolve this problem.'
+                    if verbose == False:
+                        print(msg)
+                if 'temporalCoverage' not in self.emld["dataset"]["coverage"]:
+                    print(f'Begin date updated: {date_string}')
+                    self.emld["dataset"]["coverage"]["temporalCoverage"] = {
+                        'rangeOfDates': {
+                            'beginDate': {
+                                'calendarDate': None
+                            },
+                            'endDate': {
+                                'calendarDate': date_string
+                            }
+                        }
+                    }
+                    msg = 'Warning: Your dataset does not have a beginning date. Use `set_begin_date()` to resolve this problem.'
+                    if verbose == False:
+                        print(msg)
+                if 'rangeOfDates' not in self.emld["dataset"]["coverage"]["temporalCoverage"]:
+                    print(f'Begin date updated: {date_string}')
+                    self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"] = {
+                        'beginDate': {
+                            'calendarDate': None
+                            },
+                        'endDate': {
+                            'calendarDate': date_string
+                        }
+                    }
+                    msg = 'Warning: Your dataset does not have a beginning date. Use `set_begin_date()` to resolve this problem.'
+                    if verbose == False:
+                        print(msg)
+                if 'endDate' not in self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]:
+                    print(f'Begin date updated: {date_string}')
+                    self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]["endDate"] = {
+                        "calendarDate": date_string
+                    }
+                    if 'calendarDate' not in self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]["endDate"]:
+                        # print('got here')
+                        msg = 'Warning: Your dataset does not have a beginning date. Use `set_begin_date()` to resolve this problem.'
+                        if verbose == False:
+                            if msg:
+                                print(msg)
+            if force == False:
+                if 'endDate' in self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]:
+                    print(f'Your metadata currently has `begin_date` metadata:')
+                    print('----------')
+                    print(json.dumps(self.emld["dataset"]["coverage"]["temporalCoverage"], indent=4, default=str))
+                    print('----------')
+                    user_choice = input("Do you want to overwrite your date metadata?\n'y' then enter to overwrite or 'n' then enter to keep original\n\n")
+                    if user_choice == 'y':
+                        print(f'User input: {user_choice}')
+                        self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]["endDate"]["calendarDate"] = date_string
+                        print('Dataset end date set!')
+                    else:
+                        print(f'User input: {user_choice}')
+                        print(f'`begin_date` update cancelled. Your dataset kept its original metadata.')
+            # self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]["endDate"]["calendarDate"] = date_string
+            if verbose == True:
+                print('----------')
+                print(json.dumps(self.emld["dataset"]["coverage"]["temporalCoverage"], indent = 4))
+                print('----------')
+                try:
+                    print(msg)
+                except:
+                    pass
+        except NameError as e:
+            print(e)
+        except TypeError as t:
+            print(t)
+            
+        
+        
+    
     def write_readme(self, out_file:str = '', verbose:bool = False):
         '''Generate readme txt file from emld object and write readme to file'''
         
@@ -1016,19 +1234,22 @@ class Emld():
             my_object["ref"] = self.emld["dataset"]["alternateIdentifier"]
         elif verbose == True:
             print('Your dataset does not have a DataStore reference ID (i.e. DOI). Use `set_doi()` to resolve this problem.')
-        # `get_title()`
+        # `get_title()` line 42 https://github.com/nationalparkservice/EMLeditor/blob/main/R/check_eml.R
         if 'title' in self.emld["dataset"]:
             my_object["title"] = self.emld["dataset"]["title"]
         elif verbose == True:
             print('Your dataset does not have a title. Use `set_title()` to resolve this problem.')
-        # `get_abstract()`
+        # `get_abstract()` line 43 https://github.com/nationalparkservice/EMLeditor/blob/main/R/check_eml.R
         if 'abstract' in self.emld["dataset"]:
             my_object["title"] = self.emld["dataset"]["abstract"]
         elif verbose == True:
             print('Your dataset does not have an abstract. Use `set_abstract()` to resolve this problem.')
-        # `get_file_info()`
+        # `get_file_info()` has 3 parts: 1) object name, 2) object size, 3) object description
+        # line 44 https://github.com/nationalparkservice/EMLeditor/blob/main/R/check_eml.R
+        # 1) object name
         if 'objectName' in self.emld:
             my_object['object_name'] = self.emld["objectName"] # equivalent to `arcticdatautils::eml_get_simple(eml_object, "objectName")` line 428 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
+            # 2)-ish if there's an object name, it may have an element called size nested in it
             if 'size' in self.emld["objectName"]:
                 try:
                     my_object['size'] = str(self.emld["objectName"]["size"]) + ' bytes' # equivalent to `arcticdatautils::eml_get_simple(eml_object, "size")` # line 435 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
@@ -1039,11 +1260,17 @@ class Emld():
             if 'entityDescription' in self.emld["objectName"]:
                 my_object["description"] = self.emld["objectName"]["entityDescription"]
         else:
+        # 2) object size
             # even if there isn't a user-provided size, the object will always have a size in computer memory
             my_object['size'] = str(self._get_size()) + ' bytes' # extract size
+        # 3) object description
         if 'entityDescription' in self.emld:
-           my_object['file_description'] = self.emld["file_description"] # equivalent to `arcticdatautils::eml_get_simple(eml_object, "entityDescription")` line 443 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
-        
+           my_object['file_description'] = self.emld["entityDescription"] # equivalent to `arcticdatautils::eml_get_simple(eml_object, "entityDescription")` line 443 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
+        # `get_begin_date()` line 45 https://github.com/nationalparkservice/EMLeditor/blob/main/R/check_eml.R
+        if 'beginDate' in self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]:
+            my_object["begin_date"] = self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]["beginDate"]
+        else:
+            print('Your dataset does not have a begin date. Use `set_begin_date()` to resolve this problem.')
         if verbose == True:
             print('Emld object metadata:')
             print('----------')
@@ -1053,34 +1280,71 @@ class Emld():
     def get_ds_id(self):
         '''Get the NPS DataStore reference ID for the dataset.'''
         
-        if 'alternateIdentifier' in self.emld["dataset"]:
+        # @examples
+            # myemld.get_ds_id()
+        
+        try:
             print(f'DataStore reference ID: \'{self.emld["dataset"]["alternateIdentifier"]}\'')
-        else:
+        except:
             print('Your dataset does not have a DataStore reference ID (i.e. DOI). Use `set_doi()` to resolve this problem.')
         
     def get_doi(self):
         '''Get the dataset's DOI.'''
         
-        if 'alternateIdentifier' in self.emld["dataset"]:
+        # @examples
+            # myemld.get_doi()
+        
+        try:
             print(f'DataStore reference ID: \'{self.emld["dataset"]["alternateIdentifier"]}\'')
-        else:
+        except:
             print('Your dataset does not have a DOI. Use `set_doi()` to resolve this problem.')
     
     def get_title(self):
         '''Get the dataset's title.'''  
         
-        if 'title' in self.emld["dataset"]:
+        # @examples
+            # myemld.get_title()
+        
+        try:
             print(f'Dataset title: {self.emld["dataset"]["title"]}')
-        else:
+        except:
             print('Your dataset does not have a title. Use `set_title()` to resolve this problem.')
             
     def get_abstract(self):
         '''Get the dataset's abstract.'''  
         
-        if 'abstract' in self.emld["dataset"]:
-            print(f'Dataset abstract: {self.emld["dataset"]["abstract"]["para"]}')
-        else:
+        # @examples
+            # myemld.get_abstract()
+        
+        try:
+            print('Dataset abstract:')
+            print('----------')
+            print(f'{self.emld["dataset"]["abstract"]["para"]}')
+            print('----------')
+        except:
             print('Your dataset does not have an abstract. Use `set_abstract()` to resolve this problem.')
+            
+    def get_begin_date(self):
+        '''Get the dataset's beginning date (temporal coverage `beginDate`).'''
+        
+        # @examples
+            # myemld.get_begin_date()
+        
+        try:
+            print(f'Dataset begin date: {self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]["beginDate"]["calendarDate"]}')
+        except:
+            print('Your dataset does not have a begin date. Use `set_begin_date()` to resolve this problem.')
+            
+    def get_end_date(self):
+        '''Get the dataset's end date (temporal coverage `endDate`).'''
+        
+        # @examples
+            # myemld.get_end_date()
+        
+        try:
+            print(f'Dataset end date: {self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]["endDate"]["calendarDate"]}')
+        except:
+            print('Your dataset does not have a end date. Use `set_begin_date()` to resolve this problem.')
     
     def _get_size(self):
         '''Sum size of object & members.'''
@@ -1168,6 +1432,27 @@ class Emld():
         except TypeError as t:
             print(t)
         
+    def build_xml(self, write:bool = False, destination_filename:str = '', verbose:bool = False):
+        '''Build xml from the emld object.'''
+        
+        # param write
+            # default False
+            # True will write xml string to `destination_filename`
+            # True makes `destination_filename` required
+        # @param destination_filename
+            # optional when write == False
+            # required when write == True
+            # the name and filepath, including the .xml file extension, where the Emld.emld should be saved
+        # param verbose
+            # default False
+            # True pretty-prints xml to the console
+        
+        # validate user input
+        assert destination_filename != "", "`destination_filename` cannot be blank"
+        assert destination_filename.lower().endswith(".xml"), "`destination_filename` must end with '.xml'"
+        
+        pass
+    
     def write_eml(self, destination_filename:str, attr_type:bool = False):
         '''Write emld to .xml'''
         # @param destination_filename
