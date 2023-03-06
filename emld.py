@@ -686,22 +686,22 @@ class Emld():
         # procedure
         try:
             if force == True:
-                self.emld["dataset"]["abstract"] = abstract
+                self.emld["dataset"]["abstract"]["para"] = abstract
                 print(f'Your abstract was updated to:')
                 print('----------')
                 print(f'{abstract}')
                 print('----------')
             else:
                 if 'abstract' in self.emld["dataset"]:
-                            print(f'The dataset\'s abstract is currently \'{self.emld["dataset"]["abstract"]}\'')
-                            user_choice = input(f"The dataset\'s abstract is currently '{self.emld['dataset']['abstract']}\nDo you want to overwrite the dataset's current abstract?\n'y' then enter to overwrite or 'n' then enter to keep original doi\n\n")
+                            print(f'The dataset\'s abstract is currently \'{self.emld["dataset"]["abstract"]["para"]}\'')
+                            user_choice = input(f"The dataset\'s abstract is currently '{self.emld['dataset']['abstract']]['para']}\nDo you want to overwrite the dataset's current abstract?\n'y' then enter to overwrite or 'n' then enter to keep original doi\n\n")
                             if user_choice != 'y':
                                 print(f'User input: {user_choice}')
-                                print(f'You chose to keep the dataset\'s original abstract: \'{self.emld["dataset"]["abstract"]}\'')
+                                print(f'You chose to keep the dataset\'s original abstract: \'{self.emld["dataset"]["abstract"]["para"]}\'')
                             else:
                                 print(f'User input: {user_choice}')
-                                self.emld["dataset"]["abstract"] = abstract
-                                print(f'You overwrote the data package\'s abstract to: \'{self.emld["dataset"]["abstract"]}\'!')
+                                self.emld["dataset"]["abstract"]["para"] = abstract
+                                print(f'You overwrote the data package\'s abstract to: \'{self.emld["dataset"]["abstract"]["para"]}\'!')
                     
         except NameError as e:
             print('An error prevented your abstract from processing.')
@@ -954,43 +954,7 @@ class Emld():
         # procedure
         
         
-        # procedure
-        '''Get the file info'''
-        my_object = {}
-        # `get_ds_id()`: Get the datastore ref ID from an emld object. line 40 https://github.com/nationalparkservice/EMLeditor/blob/main/R/check_eml.R
-        # `get_doi()`: get the DOI line 41 https://github.com/nationalparkservice/EMLeditor/blob/main/R/check_eml.R
-        # both point at ml_object$dataset$alternateIdentifier. redundant. see line 131 and 301 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
-        if 'alternateIdentifier' in self.emld["dataset"]:
-            my_object["ref"] = self.emld["dataset"]["alternateIdentifier"]
-        elif verbose = True:
-            print('Your dataset does not have a DataStore reference ID (i.e. DOI). Use `set_doi()` to resolve this problem.')
-        if 'title' in self.emld:
-            my_object["title"] = self.emld["title"]
-        elif verbose = True:
-            print('Your dataset does not have a title. Use `set_doi()` to resolve this problem.')
         
-        
-        if 'objectName' in self.emld:
-            my_object['object_name'] = self.emld["objectName"] # equivalent to `arcticdatautils::eml_get_simple(eml_object, "objectName")` line 428 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
-            if 'size' in self.emld["objectName"]:
-                try:
-                    my_object['size'] = str(self.emld["objectName"]["size"]) + ' bytes' # equivalent to `arcticdatautils::eml_get_simple(eml_object, "size")` # line 435 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
-                except NameError as e:
-                    print(e)
-                except TypeError as t:
-                    print(t)
-        else:
-            # even if there isn't a user-provided size, the object will always have a size in computer memory
-            my_object['size'] = str(self._get_size()) + ' bytes' # extract size
-        if 'entityDescription' in self.emld:
-           my_object['file_description'] = self.emld["file_description"] # equivalent to `arcticdatautils::eml_get_simple(eml_object, "entityDescription")` line 443 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
-        if verbose == True:
-            print('You have not specified data file names, sizes, or descripions.')
-            print('If you used EMLassemblyline, double check for any issues generated after running make_eml.')
-            print('Missing data and undifined units will often cause this problem.')
-        else:
-            pass
-        print(json.dumps(my_object, indent = 4))
         
         # readme_holder = {}
         # if ref:
@@ -1029,6 +993,94 @@ class Emld():
     
     def check_eml(self):
         pass
+    
+    def get_file_info(self, verbose:bool = False):
+        '''Extract information about the emld object to a dictionary.'''
+        
+        # line 426 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
+        
+        # @param verbose
+            # Default False
+            # True pretty-prints readme dict to console
+        
+        # @examples
+            # myemld.get_file_info(verbose = True)
+        
+        # procedure
+        '''Get the file info'''
+        my_object = {}
+        # `get_ds_id()`: Get the datastore ref ID from an emld object. line 40 https://github.com/nationalparkservice/EMLeditor/blob/main/R/check_eml.R
+        # `get_doi()`: get the DOI line 41 https://github.com/nationalparkservice/EMLeditor/blob/main/R/check_eml.R
+        # both point at ml_object$dataset$alternateIdentifier. redundant. see line 131 and 301 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
+        if 'alternateIdentifier' in self.emld["dataset"]:
+            my_object["ref"] = self.emld["dataset"]["alternateIdentifier"]
+        elif verbose == True:
+            print('Your dataset does not have a DataStore reference ID (i.e. DOI). Use `set_doi()` to resolve this problem.')
+        # `get_title()`
+        if 'title' in self.emld["dataset"]:
+            my_object["title"] = self.emld["dataset"]["title"]
+        elif verbose == True:
+            print('Your dataset does not have a title. Use `set_title()` to resolve this problem.')
+        # `get_abstract()`
+        if 'abstract' in self.emld["dataset"]:
+            my_object["title"] = self.emld["dataset"]["abstract"]
+        elif verbose == True:
+            print('Your dataset does not have an abstract. Use `set_abstract()` to resolve this problem.')
+        # `get_file_info()`
+        if 'objectName' in self.emld:
+            my_object['object_name'] = self.emld["objectName"] # equivalent to `arcticdatautils::eml_get_simple(eml_object, "objectName")` line 428 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
+            if 'size' in self.emld["objectName"]:
+                try:
+                    my_object['size'] = str(self.emld["objectName"]["size"]) + ' bytes' # equivalent to `arcticdatautils::eml_get_simple(eml_object, "size")` # line 435 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
+                except NameError as e:
+                    print(e)
+                except TypeError as t:
+                    print(t)
+            if 'entityDescription' in self.emld["objectName"]:
+                my_object["description"] = self.emld["objectName"]["entityDescription"]
+        else:
+            # even if there isn't a user-provided size, the object will always have a size in computer memory
+            my_object['size'] = str(self._get_size()) + ' bytes' # extract size
+        if 'entityDescription' in self.emld:
+           my_object['file_description'] = self.emld["file_description"] # equivalent to `arcticdatautils::eml_get_simple(eml_object, "entityDescription")` line 443 https://github.com/nationalparkservice/EMLeditor/blob/main/R/getEMLfunctions.R
+        
+        if verbose == True:
+            print('Emld object metadata:')
+            print('----------')
+            print(json.dumps(my_object, indent = 4))
+            print('----------')
+        
+    def get_ds_id(self):
+        '''Get the NPS DataStore reference ID for the dataset.'''
+        
+        if 'alternateIdentifier' in self.emld["dataset"]:
+            print(f'DataStore reference ID: \'{self.emld["dataset"]["alternateIdentifier"]}\'')
+        else:
+            print('Your dataset does not have a DataStore reference ID (i.e. DOI). Use `set_doi()` to resolve this problem.')
+        
+    def get_doi(self):
+        '''Get the dataset's DOI.'''
+        
+        if 'alternateIdentifier' in self.emld["dataset"]:
+            print(f'DataStore reference ID: \'{self.emld["dataset"]["alternateIdentifier"]}\'')
+        else:
+            print('Your dataset does not have a DOI. Use `set_doi()` to resolve this problem.')
+    
+    def get_title(self):
+        '''Get the dataset's title.'''  
+        
+        if 'title' in self.emld["dataset"]:
+            print(f'Dataset title: {self.emld["dataset"]["title"]}')
+        else:
+            print('Your dataset does not have a title. Use `set_title()` to resolve this problem.')
+            
+    def get_abstract(self):
+        '''Get the dataset's abstract.'''  
+        
+        if 'abstract' in self.emld["dataset"]:
+            print(f'Dataset abstract: {self.emld["dataset"]["abstract"]["para"]}')
+        else:
+            print('Your dataset does not have an abstract. Use `set_abstract()` to resolve this problem.')
     
     def _get_size(self):
         '''Sum size of object & members.'''
