@@ -20,8 +20,16 @@ myemld = emld.Emld(filepath = myfile, NPS = True)
 myemld.describe_int_rights()
 myemld.describe_cui()
 
-# test `set_CUI()` (controlled unclassified information) attribute and value
+# test `get_cui()`
+myemld.get_cui()
+myemld.emld["additionalMetadata"]["metadata"]["CUI"]
+myemld.get_cui()
+
+# test `set_cui()` (controlled unclassified information) attribute and value
+myemld.get_cui()
 myemld.set_cui(cui_code="PUBLIC", force = True, verbose = True)
+myemld.get_cui()
+myemld.set_cui(cui_code="NOCON", force = True, verbose = False)
 
 # test `set_title()` set dataset title value
 myemld.emld["dataset"]["title"]
@@ -112,6 +120,12 @@ myemld.get_end_date()
 myemld.set_begin_date(date_string = '2020-14-01', force = True, verbose = True) # should error
 myemld.set_begin_date(date_string = '2020-12-01', force = True, verbose = True)
 myemld.get_begin_date()
+
+# test `get_file_info()`
+myemld.get_file_info(verbose = True)
+
+# test `get_drr_doi()`
+myemld.get_drr_doi()
 
 # print the eml to console
 myemld.print_eml()

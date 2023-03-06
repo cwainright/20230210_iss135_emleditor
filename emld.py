@@ -406,7 +406,10 @@ class Emld():
         try:
             if force == True:
                 print("got to force = true")
-                self.emld["dataset"]["alternateIdentifier"] = 'doi: ' + NPS_DOI_ADDRESS + ds_ref
+                self.emld["dataset"]["alternateIdentifier"] = 'doi: ' + NPS_DOI_ADDRESS + ds_ref # this is the 'DOI'
+                self.emld["dataset"]["usageCitation"] = {
+                    "alternateIdentifier": 'doi: ' + NPS_DOI_ADDRESS + ds_ref # this is the same DOI stored a different place for the 'citation
+                }
             else:
                 if 'alternateIdentifier' in self.emld["dataset"]:
                     print(f'This data package has currently has a doi of \'{self.emld["dataset"]["alternateIdentifier"]}\'.')
@@ -416,10 +419,16 @@ class Emld():
                         pass
                     else:
                         self.emld["dataset"]["alternateIdentifier"] = 'doi: ' + NPS_DOI_ADDRESS + ds_ref
+                        self.emld["dataset"]["usageCitation"] = {
+                            "alternateIdentifier": 'doi: ' + NPS_DOI_ADDRESS + ds_ref # this is the same DOI stored a different place for the 'citation
+                        }
                         print(f'You overwrote the data package\'s doi to: \'{NPS_DOI_ADDRESS + ds_ref}\'!')
                 else:
                     print(f'No alternate identifier (doi) was found in dataset. Updating to \'{ds_ref}\' now...')
                     self.emld["dataset"]["alternateIdentifier"] = 'doi: ' + NPS_DOI_ADDRESS + ds_ref
+                    self.emld["dataset"]["usageCitation"] = {
+                        "alternateIdentifier": 'doi: ' + NPS_DOI_ADDRESS + ds_ref # this is the same DOI stored a different place for the 'citation
+                    }
                     print(f'Dataset doi updated to \'{NPS_DOI_ADDRESS + ds_ref}\'!')
         except:
             print('Unable to set data package doi.\n')
@@ -1149,8 +1158,6 @@ class Emld():
         except TypeError as t:
             print(t)
             
-        
-        
     
     def write_readme(self, out_file:str = '', verbose:bool = False):
         '''Generate readme txt file from emld object and write readme to file'''
@@ -1212,6 +1219,22 @@ class Emld():
     def check_eml(self):
         pass
     
+    def get_cui(self):
+        '''Get the dataset's controlled unclassified information (CUI) status.'''
+        
+        # @examples
+            # myemld.get_cui()
+        
+        try:
+            print(f'Dataset CUI status:')
+            print('----------')
+            print(self.emld["additionalMetadata"]["metadata"]["CUI"])
+            print('----------')
+        except:
+            print('Your dataset does not have a controlled unclassified information (CUI) setting.')
+            print('Use `set_cui()` to resolve this problem.')
+            print('Use `describe_cui()` for more information.')
+    
     def get_file_info(self, verbose:bool = False):
         '''Extract information about the emld object to a dictionary.'''
         
@@ -1271,6 +1294,10 @@ class Emld():
             my_object["begin_date"] = self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]["beginDate"]
         else:
             print('Your dataset does not have a begin date. Use `set_begin_date()` to resolve this problem.')
+        if 'endDate' in self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]:
+            my_object["end_date"] = self.emld["dataset"]["coverage"]["temporalCoverage"]["rangeOfDates"]["endDate"]
+        else:
+            print('Your dataset does not have a begin date. Use `set_begin_date()` to resolve this problem.')
         if verbose == True:
             print('Emld object metadata:')
             print('----------')
@@ -1291,11 +1318,23 @@ class Emld():
     def get_doi(self):
         '''Get the dataset's DOI.'''
         
+        # redundant with get_drr_doi(), get_ds_id()
         # @examples
             # myemld.get_doi()
         
         try:
             print(f'DataStore reference ID: \'{self.emld["dataset"]["alternateIdentifier"]}\'')
+        except:
+            print('Your dataset does not have a DOI. Use `set_doi()` to resolve this problem.')
+            
+    def get_drr_doi(self):
+        '''Get the dataset's Data Release Report (DRR) DOI.'''
+        
+        # @examples
+            # myemld.get_drr_doi()
+        
+        try:
+            print(f'Data release report (DRR) DOI: \'{self.emld["dataset"]["usageCitation"]["alternateIdentifier"]}\'')
         except:
             print('Your dataset does not have a DOI. Use `set_doi()` to resolve this problem.')
     
