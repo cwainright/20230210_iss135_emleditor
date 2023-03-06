@@ -72,7 +72,9 @@ myemld.set_abstract(abstract = my_abstract, force = True)
 # test `set_publisher()`
 myemld.set_publisher(street_address = '123 Abc street', city = 'The big apple', force = True)
 
-# test
+# test `set_producing_units()`
+myemld.set_producing_units('GLAC', 'ACAD', force = True, verbose = True)
+myemld.set_producing_units('REDG', 'ACAD', force = False, verbose = True)
 
 # test
 
